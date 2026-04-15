@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { useSettingsStore, type Tab } from './stores/settings-store'
 import { useChatStore } from './stores/chat-store'
+import { useAuthStore } from './stores/auth-store'
 import { Sidebar } from './components/layout/sidebar'
 import { Header } from './components/layout/header'
 import { ApiKeyDialog } from './components/layout/api-key-dialog'
@@ -29,7 +30,8 @@ const views = {
 const TAB_ORDER: Tab[] = ['chat', 'image', 'audio', 'music', 'video', 'embeddings', 'workflows']
 
 export function App() {
-  const [apiKeyOpen, setApiKeyOpen] = useState(false)
+  const needsUnlock = useAuthStore((s) => s.hasEncrypted && !s.apiKey)
+  const [apiKeyOpen, setApiKeyOpen] = useState(needsUnlock)
   const activeTab = useSettingsStore((s) => s.activeTab)
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
   const ActiveView = views[activeTab]
