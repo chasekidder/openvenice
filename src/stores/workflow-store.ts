@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Node, Edge } from '@xyflow/react'
 import { generateId } from '../lib/utils'
+import { applyPatches, type WorkflowPatch, type PatchResult } from '../lib/workflow-mutations'
 
 export type VeniceNodeType = 'chat' | 'imageGen' | 'tts' | 'music' | 'video' | 'textInput' | 'output'
 
@@ -50,6 +51,7 @@ export type NodeResult = {
   nodeId: string
   status: 'pending' | 'running' | 'done' | 'error'
   output?: string
+  outputKind?: 'text' | 'image' | 'audio' | 'video'
   error?: string
 }
 
@@ -67,11 +69,12 @@ interface WorkflowState {
   updateNodeResult: (nodeId: string, result: Partial<NodeResult>) => void
   setIsRunning: (running: boolean) => void
   clearResults: () => void
+  applyPatches: (workflowId: string, patches: readonly WorkflowPatch[]) => PatchResult
 }
 
 export const useWorkflowStore = create<WorkflowState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       workflows: [],
       activeWorkflowId: null,
       runResults: {},
@@ -116,6 +119,18 @@ export const useWorkflowStore = create<WorkflowState>()(
       setIsRunning: (running) => set({ isRunning: running }),
 
       clearResults: () => set({ runResults: {} }),
+
+      applyPatches: (workflowId, patches) => {
+        const wf = get().workflows.find((w) => w.id === workflowId)
+        if (!wf) throw new Error(`Workflow not found: ${workflowId}`)
+        const result = applyPatches({ nodes: wf.nodes, edges: wf.edges }, patches)
+        set((s) => ({
+          workflows: s.workflows.map((w) =>
+            w.id === workflowId ? { ...w, nodes: result.nodes, edges: result.edges } : w,
+          ),
+        }))
+        return result
+      },
     }),
     {
       name: 'venice-workflows',

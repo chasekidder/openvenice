@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react'
 import type { VeniceNodeData, NodeResult } from '../stores/workflow-store'
+import { NODE_SCHEMAS, type IOKind } from './workflow-schema'
 import { venice, veniceBlob } from './venice-client'
 import type { ChatCompletionResponse, ImageGenerateResponse, MusicQueueResponse, MusicRetrieveResponse, VideoQueueResponse, VideoRetrieveResponse } from '../types/venice'
 
@@ -209,7 +210,9 @@ export async function executeWorkflow(
       }
 
       outputs.set(nodeId, output)
-      onUpdate(nodeId, { status: 'done', output })
+      const kind = NODE_SCHEMAS[data.nodeType]?.output as IOKind | undefined
+      const outputKind = kind && kind !== 'none' ? (kind as NodeResult['outputKind']) : undefined
+      onUpdate(nodeId, { status: 'done', output, outputKind })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
       onUpdate(nodeId, { status: 'error', error: message })
