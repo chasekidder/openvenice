@@ -26,6 +26,10 @@ function WorkflowIcon() {
   return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="5" r="2" /><circle cx="6" cy="19" r="2" /><circle cx="18" cy="19" r="2" /><path d="M12 7v4M12 11l-6 6M12 11l6 6" /></svg>)
 }
 
+function PlaygroundIcon() {
+  return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M4.93 4.93l2.83 2.83M2 12h4M4.93 19.07l2.83-2.83M12 18v4M19.07 19.07l-2.83-2.83M22 12h-4M19.07 4.93l-2.83 2.83" /><circle cx="12" cy="12" r="3" /></svg>)
+}
+
 const tabs: Array<{ id: Tab; label: string; Icon: () => React.JSX.Element }> = [
   { id: 'chat', label: 'Chat', Icon: ChatIcon },
   { id: 'image', label: 'Image', Icon: ImageIcon },
@@ -34,6 +38,7 @@ const tabs: Array<{ id: Tab; label: string; Icon: () => React.JSX.Element }> = [
   { id: 'video', label: 'Video', Icon: VideoIcon },
   { id: 'embeddings', label: 'Embed', Icon: EmbedIcon },
   { id: 'workflows', label: 'Workflows', Icon: WorkflowIcon },
+  { id: 'playground', label: 'Playground', Icon: PlaygroundIcon },
 ]
 
 export function Sidebar() {
@@ -44,12 +49,12 @@ export function Sidebar() {
   return (
     <aside className={cn(
       'flex flex-col h-full bg-[#0a0a0a] border-r border-white/[0.06] transition-all duration-150 ease-out',
-      sidebarOpen ? 'w-52' : 'w-11',
+      sidebarOpen ? 'w-64' : 'w-14',
     )}>
       {/* Logo */}
-      <div className={cn('flex items-center gap-2 h-11 shrink-0', sidebarOpen ? 'px-3' : 'px-2 justify-center')}>
+      <div className={cn('flex items-center gap-2 h-14 shrink-0', sidebarOpen ? 'px-3' : 'px-2 justify-center')}>
         <VeniceLogo size={18} />
-        {sidebarOpen && <VeniceWordmark className="text-[12px]" />}
+        {sidebarOpen && <VeniceWordmark className="text-[15px]" />}
       </div>
 
       {/* Nav tabs */}
@@ -59,8 +64,8 @@ export function Sidebar() {
             key={id}
             onClick={() => setActiveTab(id)}
             className={cn(
-              'flex items-center gap-2 rounded-md text-[12px] transition-colors duration-100',
-              sidebarOpen ? 'px-2 py-[5px]' : 'px-0 py-[5px] justify-center',
+              'flex items-center gap-2 rounded-md text-[15px] transition-colors duration-100',
+              sidebarOpen ? 'px-2 py-[7px]' : 'px-0 py-[7px] justify-center',
               activeTab === id
                 ? 'bg-white/[0.06] text-white/80'
                 : 'text-white/25 hover:text-white/50 hover:bg-white/[0.03]',
@@ -76,7 +81,7 @@ export function Sidebar() {
       {sidebarOpen && activeTab === 'chat' && (
         <div className="flex flex-col flex-1 min-h-0 mt-2">
           <div className="flex items-center justify-between px-3 py-1">
-            <span className="text-[10px] font-medium text-white/15 uppercase tracking-[0.08em]">History</span>
+            <span className="text-[13px] font-medium text-white/15 uppercase tracking-[0.08em]">History</span>
             <button
               onClick={() => createConversation(selectedModel || 'llama-3.3-70b')}
               className="text-white/20 hover:text-white/60 transition-colors p-0.5"
@@ -87,13 +92,13 @@ export function Sidebar() {
           </div>
           <div className="flex-1 overflow-y-auto px-1.5 pb-2">
             {conversations.length === 0 ? (
-              <div className="px-2 py-5 text-[11px] text-white/8 text-center">No conversations yet</div>
+              <div className="px-2 py-5 text-[14px] text-white/8 text-center">No conversations yet</div>
             ) : (
               conversations.map((conv) => (
                 <div
                   key={conv.id}
                   className={cn(
-                    'group flex items-center gap-1.5 px-2 py-[4px] rounded-md text-[11px] cursor-pointer transition-colors',
+                    'group flex items-center gap-1.5 px-3 py-[6px] rounded-md text-[14px] cursor-pointer transition-colors',
                     conv.id === activeConversationId
                       ? 'bg-white/[0.06] text-white/60'
                       : 'text-white/20 hover:text-white/45 hover:bg-white/[0.02]',
@@ -122,9 +127,9 @@ export function Sidebar() {
       {/* Keyboard shortcuts hint */}
       {sidebarOpen && (
         <div className="px-3 py-2.5 border-t border-white/[0.04]">
-          <div className="text-[9px] text-white/8 space-y-px">
+          <div className="text-[12px] text-white/8 space-y-px">
             <div className="flex justify-between"><span>New chat</span><kbd className="font-mono">⌘N</kbd></div>
-            <div className="flex justify-between"><span>Switch tab</span><kbd className="font-mono">⌘1-7</kbd></div>
+            <div className="flex justify-between"><span>Switch tab</span><kbd className="font-mono">⌘1-8</kbd></div>
           </div>
         </div>
       )}

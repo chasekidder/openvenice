@@ -9,10 +9,10 @@ export function ApiKeyDialog({ open, onClose }: { open: boolean; onClose: () => 
   const [remember, setRemember] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [forceConnect, setForceConnect] = useState(false)
 
   if (!open) return null
 
-  const [forceConnect, setForceConnect] = useState(false)
   const isUnlockMode = hasEncrypted && !apiKey && !forceConnect
 
   const handleConnect = async () => {

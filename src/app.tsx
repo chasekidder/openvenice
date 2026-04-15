@@ -17,6 +17,11 @@ function WorkflowsView() {
   return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/15">Loading workflows...</div>}><LazyWorkflowsView /></Suspense>
 }
 
+const LazyPlaygroundView = lazy(() => import('./components/playground/playground-view').then((m) => ({ default: m.PlaygroundView })))
+function PlaygroundView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/15">Loading playground...</div>}><LazyPlaygroundView /></Suspense>
+}
+
 const views = {
   chat: ChatView,
   image: ImagePage,
@@ -25,9 +30,10 @@ const views = {
   video: VideoView,
   embeddings: EmbeddingsView,
   workflows: WorkflowsView,
+  playground: PlaygroundView,
 } as const
 
-const TAB_ORDER: Tab[] = ['chat', 'image', 'audio', 'music', 'video', 'embeddings', 'workflows']
+const TAB_ORDER: Tab[] = ['chat', 'image', 'audio', 'music', 'video', 'embeddings', 'workflows', 'playground']
 
 export function App() {
   const needsUnlock = useAuthStore((s) => s.hasEncrypted && !s.apiKey)

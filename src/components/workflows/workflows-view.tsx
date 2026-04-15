@@ -65,58 +65,111 @@ const DEFAULT_MODELS: Record<VeniceNodeType, string> = {
   video: 'wan-2.1',
 }
 
-const TEMPLATES: Array<{ name: string; desc: string; build: () => { nodes: Node<VeniceNodeData>[]; edges: Edge[] } }> = [
+type VNode = Node<VeniceNodeData>
+type TemplateGraph = { nodes: VNode[]; edges: Edge[] }
+
+const mkIds = (n: number) => Array.from({ length: n }, () => generateId())
+const mkEdge = (source: string, target: string): Edge => ({ id: `e-${source}-${target}`, source, target, animated: true })
+
+const TEMPLATES: Array<{ name: string; desc: string; build: () => TemplateGraph }> = [
   {
-    name: 'Write + Illustrate',
-    desc: 'LLM expands a concept into an image prompt, then generates the image',
+    name: 'Album Cover',
+    desc: 'A song concept → visual art direction → cover artwork',
     build: () => {
-      const ids = [generateId(), generateId(), generateId()]
+      const [a, b, c, d] = mkIds(4)
       return {
         nodes: [
-          { id: ids[0], type: 'venice', position: { x: 250, y: 50 }, data: { label: 'Input', nodeType: 'textInput' as const, model: '', prompt: '', inputText: 'A cozy coffee shop on a rainy day' } },
-          { id: ids[1], type: 'venice', position: { x: 250, y: 220 }, data: { label: 'LLM', nodeType: 'chat' as const, model: 'llama-3.3-70b', prompt: 'Write a vivid, detailed image generation prompt based on this concept. Output only the prompt, no explanation.', temperature: 0.8 } },
-          { id: ids[2], type: 'venice', position: { x: 250, y: 420 }, data: { label: 'Image Gen', nodeType: 'imageGen' as const, model: 'z-image-turbo', prompt: '', steps: 25 } },
+          { id: a, type: 'venice', position: { x: 280, y: 40 }, data: { label: 'Input', nodeType: 'textInput', model: '', prompt: '', inputText: 'A melancholic indie-folk album about leaving a small coastal town' } },
+          { id: b, type: 'venice', position: { x: 280, y: 220 }, data: { label: 'LLM', nodeType: 'chat', model: 'llama-3.3-70b', prompt: 'You are an art director. Given this album concept, write a vivid, specific image-generation prompt for the cover art — mood, color palette, composition, subject, style. Output only the prompt.', temperature: 0.9 } },
+          { id: c, type: 'venice', position: { x: 280, y: 440 }, data: { label: 'Image Gen', nodeType: 'imageGen', model: 'z-image-turbo', prompt: '', steps: 30, width: 1024, height: 1024 } },
+          { id: d, type: 'venice', position: { x: 280, y: 680 }, data: { label: 'Output', nodeType: 'output', model: '', prompt: '' } },
         ],
-        edges: [
-          { id: `e-${ids[0]}-${ids[1]}`, source: ids[0], target: ids[1], animated: true },
-          { id: `e-${ids[1]}-${ids[2]}`, source: ids[1], target: ids[2], animated: true },
-        ],
+        edges: [mkEdge(a, b), mkEdge(b, c), mkEdge(c, d)],
       }
     },
   },
   {
-    name: 'Research + Summarize',
-    desc: 'Web search for a topic, then summarize into bullet points',
+    name: 'Podcast Episode',
+    desc: 'Topic → web research → tight 90-second script → narrated audio',
     build: () => {
-      const ids = [generateId(), generateId(), generateId()]
+      const [a, b, c, d, e] = mkIds(5)
       return {
         nodes: [
-          { id: ids[0], type: 'venice', position: { x: 250, y: 50 }, data: { label: 'Input', nodeType: 'textInput' as const, model: '', prompt: '', inputText: 'Latest developments in quantum computing' } },
-          { id: ids[1], type: 'venice', position: { x: 250, y: 220 }, data: { label: 'LLM', nodeType: 'chat' as const, model: 'llama-3.3-70b', prompt: 'Research the following topic thoroughly. Provide detailed findings with specific facts and sources.', webSearch: 'on' as const, temperature: 0.7 } },
-          { id: ids[2], type: 'venice', position: { x: 250, y: 450 }, data: { label: 'LLM', nodeType: 'chat' as const, model: 'llama-3.3-70b', prompt: 'Summarize the following research into 5 concise bullet points.', temperature: 0.3 } },
+          { id: a, type: 'venice', position: { x: 280, y: 40 }, data: { label: 'Input', nodeType: 'textInput', model: '', prompt: '', inputText: 'How CRISPR gene editing actually works' } },
+          { id: b, type: 'venice', position: { x: 280, y: 220 }, data: { label: 'LLM', nodeType: 'chat', model: 'llama-3.3-70b', prompt: 'Research this topic. Provide specific facts, mechanisms, and current developments. Cite sources.', webSearch: 'on', temperature: 0.5 } },
+          { id: c, type: 'venice', position: { x: 280, y: 460 }, data: { label: 'LLM', nodeType: 'chat', model: 'llama-3.3-70b', prompt: 'Rewrite this research as a conversational ~90-second podcast monologue. Start with a hook. No headings, no bullet points — just flowing spoken English.', temperature: 0.7 } },
+          { id: d, type: 'venice', position: { x: 280, y: 700 }, data: { label: 'Text to Speech', nodeType: 'tts', model: 'tts-kokoro', prompt: '', voice: 'af_sky' } },
+          { id: e, type: 'venice', position: { x: 280, y: 900 }, data: { label: 'Output', nodeType: 'output', model: '', prompt: '' } },
         ],
-        edges: [
-          { id: `e-${ids[0]}-${ids[1]}`, source: ids[0], target: ids[1], animated: true },
-          { id: `e-${ids[1]}-${ids[2]}`, source: ids[1], target: ids[2], animated: true },
-        ],
+        edges: [mkEdge(a, b), mkEdge(b, c), mkEdge(c, d), mkEdge(d, e)],
       }
     },
   },
   {
-    name: 'Write + Narrate',
-    desc: 'LLM writes an explanation, then TTS reads it aloud',
+    name: 'Music Video Mood',
+    desc: 'One vibe → parallel image, music, and video generation',
     build: () => {
-      const ids = [generateId(), generateId(), generateId()]
+      const [a, b, c, d, e, f, g, h] = mkIds(8)
       return {
         nodes: [
-          { id: ids[0], type: 'venice', position: { x: 250, y: 50 }, data: { label: 'Input', nodeType: 'textInput' as const, model: '', prompt: '', inputText: 'Explain how black holes form in simple terms' } },
-          { id: ids[1], type: 'venice', position: { x: 250, y: 220 }, data: { label: 'LLM', nodeType: 'chat' as const, model: 'llama-3.3-70b', prompt: 'Write a clear, engaging explanation suitable for narration. Keep it under 200 words.', temperature: 0.7 } },
-          { id: ids[2], type: 'venice', position: { x: 250, y: 450 }, data: { label: 'Text to Speech', nodeType: 'tts' as const, model: 'tts-kokoro', prompt: '', voice: 'af_sky' } },
+          { id: a, type: 'venice', position: { x: 340, y: 40 }, data: { label: 'Input', nodeType: 'textInput', model: '', prompt: '', inputText: 'Neon-lit Tokyo alley at 3am, light rain, reflective puddles, lonely synthwave' } },
+          { id: b, type: 'venice', position: { x: 340, y: 220 }, data: { label: 'LLM', nodeType: 'chat', model: 'llama-3.3-70b', prompt: 'You are a music-video director. Expand this mood into a single paragraph that captures visual style, camera, and sonic atmosphere. One tight paragraph, no lists.', temperature: 0.9 } },
+          { id: c, type: 'venice', position: { x: 40,  y: 460 }, data: { label: 'Image Gen', nodeType: 'imageGen', model: 'z-image-turbo', prompt: 'Cinematic still frame of: {{input}}', steps: 30, width: 1024, height: 1024 } },
+          { id: d, type: 'venice', position: { x: 340, y: 460 }, data: { label: 'Music Gen', nodeType: 'music', model: 'stable-audio', prompt: 'Atmospheric score matching: {{input}}', duration: 30, instrumental: true } },
+          { id: e, type: 'venice', position: { x: 640, y: 460 }, data: { label: 'Video Gen', nodeType: 'video', model: 'wan-2.1', prompt: '{{input}}', videoAspectRatio: '16:9' } },
+          { id: f, type: 'venice', position: { x: 40,  y: 740 }, data: { label: 'Output', nodeType: 'output', model: '', prompt: '' } },
+          { id: g, type: 'venice', position: { x: 340, y: 740 }, data: { label: 'Output', nodeType: 'output', model: '', prompt: '' } },
+          { id: h, type: 'venice', position: { x: 640, y: 740 }, data: { label: 'Output', nodeType: 'output', model: '', prompt: '' } },
         ],
-        edges: [
-          { id: `e-${ids[0]}-${ids[1]}`, source: ids[0], target: ids[1], animated: true },
-          { id: `e-${ids[1]}-${ids[2]}`, source: ids[1], target: ids[2], animated: true },
+        edges: [mkEdge(a, b), mkEdge(b, c), mkEdge(b, d), mkEdge(b, e), mkEdge(c, f), mkEdge(d, g), mkEdge(e, h)],
+      }
+    },
+  },
+  {
+    name: 'Song Writer',
+    desc: 'Theme → lyrics → music generation with vocals',
+    build: () => {
+      const [a, b, c, d] = mkIds(4)
+      return {
+        nodes: [
+          { id: a, type: 'venice', position: { x: 280, y: 40 }, data: { label: 'Input', nodeType: 'textInput', model: '', prompt: '', inputText: 'A bittersweet goodbye between two old friends at a train station' } },
+          { id: b, type: 'venice', position: { x: 280, y: 220 }, data: { label: 'LLM', nodeType: 'chat', model: 'llama-3.3-70b', prompt: 'Write a short song (verse, chorus, verse) about this theme. Keep it under 100 words. Output only the lyrics — no headers or commentary.', temperature: 0.9 } },
+          { id: c, type: 'venice', position: { x: 280, y: 460 }, data: { label: 'Music Gen', nodeType: 'music', model: 'stable-audio', prompt: 'Melancholic indie-folk, acoustic guitar, soft male vocals, slow tempo', duration: 45, instrumental: false } },
+          { id: d, type: 'venice', position: { x: 280, y: 680 }, data: { label: 'Output', nodeType: 'output', model: '', prompt: '' } },
         ],
+        edges: [mkEdge(a, b), mkEdge(b, c), mkEdge(c, d)],
+      }
+    },
+  },
+  {
+    name: 'Character Portrait',
+    desc: 'Character concept → rich visual design brief → portrait',
+    build: () => {
+      const [a, b, c, d] = mkIds(4)
+      return {
+        nodes: [
+          { id: a, type: 'venice', position: { x: 280, y: 40 }, data: { label: 'Input', nodeType: 'textInput', model: '', prompt: '', inputText: 'A disillusioned space-station botanist in her 50s, caretaker of the last Earth plants' } },
+          { id: b, type: 'venice', position: { x: 280, y: 220 }, data: { label: 'LLM', nodeType: 'chat', model: 'llama-3.3-70b', prompt: 'Write a detailed character portrait brief: physical description, clothing, posture, lighting, background, art style. Aim for concrete visual detail, not personality. Output as a single dense prompt paragraph.', temperature: 0.85 } },
+          { id: c, type: 'venice', position: { x: 280, y: 460 }, data: { label: 'Image Gen', nodeType: 'imageGen', model: 'z-image-turbo', prompt: 'Portrait, 50mm lens, cinematic: {{input}}', steps: 35, width: 832, height: 1216 } },
+          { id: d, type: 'venice', position: { x: 280, y: 700 }, data: { label: 'Output', nodeType: 'output', model: '', prompt: '' } },
+        ],
+        edges: [mkEdge(a, b), mkEdge(b, c), mkEdge(c, d)],
+      }
+    },
+  },
+  {
+    name: 'Story Scene',
+    desc: 'One-line premise → cinematic scene description → illustration',
+    build: () => {
+      const [a, b, c, d] = mkIds(4)
+      return {
+        nodes: [
+          { id: a, type: 'venice', position: { x: 280, y: 40 }, data: { label: 'Input', nodeType: 'textInput', model: '', prompt: '', inputText: 'A lighthouse keeper finds a message in a bottle from her younger self' } },
+          { id: b, type: 'venice', position: { x: 280, y: 220 }, data: { label: 'LLM', nodeType: 'chat', model: 'llama-3.3-70b', prompt: 'Expand this premise into a single cinematic scene description: setting, time of day, weather, key visual detail, subject pose, mood. 3-4 sentences, no narrative — purely visual.', temperature: 0.9 } },
+          { id: c, type: 'venice', position: { x: 280, y: 460 }, data: { label: 'Image Gen', nodeType: 'imageGen', model: 'z-image-turbo', prompt: 'Cinematic wide shot, film still, moody lighting: {{input}}', steps: 30, width: 1216, height: 832 } },
+          { id: d, type: 'venice', position: { x: 280, y: 700 }, data: { label: 'Output', nodeType: 'output', model: '', prompt: '' } },
+        ],
+        edges: [mkEdge(a, b), mkEdge(b, c), mkEdge(c, d)],
       }
     },
   },
@@ -217,16 +270,16 @@ function WorkflowCanvas() {
   return (
     <div className="flex h-full">
       {/* Toolbar */}
-      <div className="w-44 border-r border-white/[0.06] bg-[#0a0a0a] flex flex-col shrink-0">
+      <div className="w-56 border-r border-white/[0.06] bg-[#0a0a0a] flex flex-col shrink-0">
         <div className="p-3 border-b border-white/[0.06]">
-          <span className="text-[10px] font-medium text-white/15 uppercase tracking-[0.08em]">Add Node</span>
+          <span className="text-[13px] font-medium text-white/15 uppercase tracking-[0.08em]">Add Node</span>
         </div>
         <div className="p-2 flex flex-col gap-1">
           {NODE_PALETTE.map((item) => (
             <button
               key={item.type}
               onClick={() => addNode(item.type)}
-              className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] text-white/40 hover:text-white/60 hover:bg-white/[0.04] transition-colors text-left"
+              className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[14px] text-white/40 hover:text-white/60 hover:bg-white/[0.04] transition-colors text-left"
             >
               <span className={item.color}><item.Icon /></span>
               {item.label}
@@ -241,7 +294,7 @@ function WorkflowCanvas() {
             onClick={handleRun}
             disabled={isRunning || nodes.length === 0}
             className={cn(
-              'w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-medium transition-all',
+              'w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[14px] font-medium transition-all',
               isRunning
                 ? 'bg-white/[0.06] text-white/30 cursor-wait'
                 : 'bg-white text-black hover:bg-white/90 disabled:opacity-30 disabled:cursor-not-allowed',
@@ -309,13 +362,13 @@ export function WorkflowsView() {
         <div className="flex items-center gap-2.5 px-3 py-1.5 border-b border-white/[0.06] bg-[#0a0a0a] shrink-0">
           <button
             onClick={() => setActiveWorkflow(null)}
-            className="text-[10px] text-white/25 hover:text-white/50 transition-colors flex items-center gap-1"
+            className="text-[13px] text-white/25 hover:text-white/50 transition-colors flex items-center gap-1"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
             Back
           </button>
           <div className="w-px h-3.5 bg-white/[0.06]" />
-          <span className="text-[11px] text-white/50 font-medium">
+          <span className="text-[14px] text-white/50 font-medium">
             {workflows.find((w) => w.id === activeWorkflowId)?.name}
           </span>
         </div>
@@ -331,8 +384,8 @@ export function WorkflowsView() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-3xl mx-auto px-6 py-8">
-        <h2 className="text-[13px] text-white/60 font-medium mb-1">Workflows</h2>
-        <p className="text-[10px] text-white/20 mb-6">Chain Venice models together visually</p>
+        <h2 className="text-[16px] text-white/60 font-medium mb-1">Workflows</h2>
+        <p className="text-[13px] text-white/20 mb-6">Chain Venice models together visually</p>
 
         <div className="flex gap-2 mb-6">
           <input
@@ -340,17 +393,17 @@ export function WorkflowsView() {
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreate(newName)}
             placeholder="Workflow name..."
-            className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-[12px] text-white/70 outline-none placeholder:text-white/15 focus:border-white/[0.12]"
+            className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-[15px] text-white/70 outline-none placeholder:text-white/15 focus:border-white/[0.12]"
           />
           <button
             onClick={() => handleCreate(newName)}
-            className="text-[11px] font-medium px-4 py-2 rounded-lg bg-white text-black hover:bg-white/90 transition-colors"
+            className="text-[14px] font-medium px-4 py-2 rounded-lg bg-white text-black hover:bg-white/90 transition-colors"
           >
             New Workflow
           </button>
         </div>
 
-        <h3 className="text-[10px] font-medium text-white/15 uppercase tracking-[0.08em] mb-3">Templates</h3>
+        <h3 className="text-[13px] font-medium text-white/15 uppercase tracking-[0.08em] mb-3">Templates</h3>
         <div className="grid grid-cols-3 gap-3 mb-8">
           {TEMPLATES.map((t) => (
             <button
@@ -358,15 +411,15 @@ export function WorkflowsView() {
               onClick={() => handleCreate(t.name, t)}
               className="p-3.5 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] transition-all text-left"
             >
-              <div className="text-[12px] text-white/60 font-medium mb-1">{t.name}</div>
-              <div className="text-[10px] text-white/20">{t.desc}</div>
+              <div className="text-[15px] text-white/60 font-medium mb-1">{t.name}</div>
+              <div className="text-[13px] text-white/20">{t.desc}</div>
             </button>
           ))}
         </div>
 
         {workflows.length > 0 && (
           <>
-            <h3 className="text-[10px] font-medium text-white/15 uppercase tracking-[0.08em] mb-3">Saved Workflows</h3>
+            <h3 className="text-[13px] font-medium text-white/15 uppercase tracking-[0.08em] mb-3">Saved Workflows</h3>
             <div className="flex flex-col gap-2">
               {workflows.map((wf) => (
                 <div
@@ -375,12 +428,12 @@ export function WorkflowsView() {
                   onClick={() => setActiveWorkflow(wf.id)}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="text-[12px] text-white/60 font-medium truncate">{wf.name}</div>
-                    <div className="text-[10px] text-white/15">{wf.nodes.length} nodes</div>
+                    <div className="text-[15px] text-white/60 font-medium truncate">{wf.name}</div>
+                    <div className="text-[13px] text-white/15">{wf.nodes.length} nodes</div>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteWorkflow(wf.id) }}
-                    className="text-[10px] text-white/15 hover:text-red-400/60 transition-colors px-2 py-1"
+                    className="text-[13px] text-white/15 hover:text-red-400/60 transition-colors px-2 py-1"
                   >
                     Delete
                   </button>

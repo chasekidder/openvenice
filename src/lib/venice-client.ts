@@ -1,4 +1,5 @@
 import type { VeniceError } from '../types/venice'
+import { useAuthStore } from '../stores/auth-store'
 
 const BASE_URL = '/venice/api/v1'
 
@@ -17,16 +18,9 @@ export class VeniceAPIError extends Error {
 }
 
 function getApiKey(): string {
-  const raw = localStorage.getItem('venice-auth')
-  if (!raw) throw new VeniceAPIError('API key not set', 401)
-  try {
-    const parsed = JSON.parse(raw)
-    const key = parsed?.state?.apiKey
-    if (!key) throw new VeniceAPIError('API key not set', 401)
-    return key
-  } catch {
-    throw new VeniceAPIError('API key not set', 401)
-  }
+  const key = useAuthStore.getState().apiKey
+  if (!key) throw new VeniceAPIError('API key not set', 401)
+  return key
 }
 
 export async function venice<T>(
