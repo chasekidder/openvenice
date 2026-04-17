@@ -18,7 +18,6 @@ export function useChat() {
     temperature,
     topP,
     maxTokens,
-    getActiveConversation,
     createConversation,
   } = useChatStore()
 
@@ -52,8 +51,7 @@ export function useChat() {
         signal: abortController.signal,
       })
 
-      for await (const chunk of parseSSEStream(stream)) {
-        if (abortController.signal.aborted) break
+      for await (const chunk of parseSSEStream(stream, { signal: abortController.signal })) {
         const delta = chunk.choices[0]?.delta
         if (delta?.content) {
           appendToLastAssistant(convId, delta.content)

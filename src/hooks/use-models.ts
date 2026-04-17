@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { venice } from '../lib/venice-client'
-import type { ModelsResponse, VeniceModel } from '../types/venice'
+import type { ModelsResponse, VeniceModel, VideoConstraints } from '../types/venice'
 
 export function useModels(type?: string) {
   return useQuery({
@@ -32,7 +32,7 @@ export function useVideoModels() {
   if (query.data) {
     const map = new Map<string, VideoModelGroup>()
     for (const m of query.data) {
-      const c = m.model_spec?.constraints
+      const c = m.model_spec?.constraints as VideoConstraints | undefined
       if (!c) continue
       const name = m.model_spec?.name || m.id
       const key = name.toLowerCase()

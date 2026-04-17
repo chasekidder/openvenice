@@ -1,7 +1,8 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import type { ChatMessage, Conversation, VeniceParameters } from '../types/venice'
 import { generateId } from '../lib/utils'
+import { createSafeStorage } from '../lib/safe-storage'
 
 interface ChatState {
   conversations: Conversation[]
@@ -138,6 +139,22 @@ export const useChatStore = create<ChatState>()(
     }),
     {
       name: 'venice-chat',
+      version: 2,
+      storage: createJSONStorage(() => createSafeStorage()),
+      migrate: (persisted, version) => {
+        // v1 → v2: trim conversations to 50, ensure veniceParams shape
+        if (!persisted || typeof persisted !== 'object') return persisted as ChatState
+        const s = persisted as Partial<ChatState>
+        if (Array.isArray(s.conversations)) s.conversations = s.conversations.slice(0, 50)
+        if (!s.veniceParams || typeof s.veniceParams !== 'object') {
+          s.veniceParams = { include_venice_system_prompt: false, enable_web_search: 'off' }
+        }
+        if (version < 2) {
+          // Drop in-flight streaming flag from previous schema if present
+          delete (s as Record<string, unknown>).isStreaming
+        }
+        return s as ChatState
+      },
       partialize: (state) => ({
         conversations: state.conversations.slice(0, 50),
         activeConversationId: state.activeConversationId,

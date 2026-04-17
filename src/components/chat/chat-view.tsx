@@ -9,6 +9,13 @@ import { ChatInput } from './chat-input'
 import { VeniceParams } from './venice-params'
 import { VeniceLogo } from '../ui/logo'
 
+const STARTER_PROMPTS = [
+  'Explain how RSA encryption works using a metaphor a 10-year-old could grasp.',
+  'Draft a polite but firm email asking my landlord to fix the heating.',
+  'Compare REST and GraphQL — when does each shine?',
+  'Brainstorm five novel side-project ideas using LLMs and a Raspberry Pi.',
+]
+
 export function ChatView() {
   const deleteMessage = useChatStore((s) => s.deleteMessage)
   const conversation = useChatStore((s) => {
@@ -25,19 +32,42 @@ export function ChatView() {
   const messageCount = conversation?.messages.length ?? 0
   const lastContent = conversation?.messages[messageCount - 1]?.content
   const lastLen = typeof lastContent === 'string' ? lastContent.length : 0
-  // Scroll on new messages + periodically during streaming (every ~200 chars)
   const scrollTrigger = `${messageCount}-${Math.floor(lastLen / 200)}`
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [scrollTrigger])
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto">
         {!conversation || conversation.messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center px-6">
-            <VeniceLogo size={28} className="mb-4 opacity-60" />
-            <p className="text-[12px] text-white/15 mb-4">Select a model and start typing.</p>
+          <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-6">
+            <div className="flex flex-col items-center gap-3">
+              <VeniceLogo size={32} className="opacity-80" />
+              <div className="text-[20px] font-semibold text-white/85">How can I help today?</div>
+              <p className="text-[14px] text-white/45 max-w-sm">
+                {apiKey
+                  ? 'Pick a model in the header above, then start a conversation. Streaming, web search, and citations are all built in.'
+                  : 'Connect a Venice API key from the header above to get started.'}
+              </p>
+            </div>
+            {apiKey && (
+              <div className="w-full max-w-md flex flex-col gap-2">
+                <div className="text-[12px] uppercase tracking-[0.08em] text-white/35 font-medium text-left">Try one of these</div>
+                <div className="flex flex-col gap-1.5">
+                  {STARTER_PROMPTS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => send(p, model)}
+                      className="text-left px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all text-[14px] text-white/65 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <VeniceParams />
           </div>
         ) : (
@@ -45,7 +75,7 @@ export function ChatView() {
             <div className="border-b border-white/[0.04]">
               <VeniceParams />
             </div>
-            <div className="w-full max-w-[840px] mx-auto py-5 px-5 flex flex-col gap-5">
+            <div className="w-full max-w-[960px] mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
               {conversation.messages.map((msg, i) => (
                 <MessageBubble
                   key={i}

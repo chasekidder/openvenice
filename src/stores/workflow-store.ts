@@ -1,8 +1,9 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Node, Edge } from '@xyflow/react'
 import { generateId } from '../lib/utils'
 import { applyPatches, type WorkflowPatch, type PatchResult } from '../lib/workflow-mutations'
+import { createSafeStorage } from '../lib/safe-storage'
 
 export type VeniceNodeType = 'chat' | 'imageGen' | 'tts' | 'music' | 'video' | 'textInput' | 'output'
 
@@ -134,6 +135,8 @@ export const useWorkflowStore = create<WorkflowState>()(
     }),
     {
       name: 'venice-workflows',
+      version: 1,
+      storage: createJSONStorage(() => createSafeStorage()),
       partialize: (state) => ({
         workflows: state.workflows.slice(0, 20),
         activeWorkflowId: state.activeWorkflowId,

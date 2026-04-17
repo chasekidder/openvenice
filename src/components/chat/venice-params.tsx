@@ -27,7 +27,7 @@ export function VeniceParams() {
           <button
             onClick={() => setShowSettings(!showSettings)}
             className={cn(
-              'flex items-center gap-1 text-[10px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100',
+              'flex items-center gap-1 text-[13px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100',
               showSettings ? 'bg-white/90 text-black' : 'bg-white/[0.03] text-white/18 hover:text-white/35 hover:bg-white/[0.05]',
             )}
           >
@@ -42,13 +42,13 @@ export function VeniceParams() {
       {showSettings && (
         <div className="mt-2.5 pb-1 flex flex-col gap-2.5">
           <div>
-            <label className="text-[10px] text-white/15 font-medium mb-1 block uppercase tracking-[0.08em]">System Prompt</label>
+            <label className="text-[13px] text-white/15 font-medium mb-1 block uppercase tracking-[0.08em]">System Prompt</label>
             <textarea
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
               placeholder="You are a helpful assistant..."
               rows={2}
-              className="w-full bg-white/[0.02] border border-white/[0.05] rounded-lg px-3 py-2 text-[12px] text-white/50 outline-none resize-none placeholder:text-white/8 focus:border-white/[0.1] transition-colors"
+              className="w-full bg-white/[0.02] border border-white/[0.05] rounded-lg px-3 py-2 text-[15px] text-white/50 outline-none resize-none placeholder:text-white/8 focus:border-white/[0.1] transition-colors"
             />
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -75,8 +75,8 @@ function ParamSlider({ label, value, onChange, min, max, step, format }: {
   return (
     <div>
       <div className="flex items-center justify-between mb-0.5">
-        <label className="text-[9px] text-white/15 font-medium uppercase tracking-[0.08em]">{label}</label>
-        <span className="text-[9px] text-white/25 font-mono">{display}</span>
+        <label className="text-[12px] text-white/15 font-medium uppercase tracking-[0.08em]">{label}</label>
+        <span className="text-[12px] text-white/25 font-mono">{display}</span>
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full" />
     </div>
@@ -88,7 +88,7 @@ function Pill({ label, active, onClick }: { label: string; active: boolean; onCl
     <button
       onClick={onClick}
       className={cn(
-        'text-[10px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100',
+        'text-[13px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100',
         active
           ? 'bg-white/90 text-black'
           : 'bg-white/[0.03] text-white/18 hover:text-white/35 hover:bg-white/[0.05]',
@@ -112,7 +112,7 @@ function SearchPill({ value, onChange }: { value: string; onChange: (v: SearchMo
     <button
       onClick={next}
       className={cn(
-        'text-[10px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100',
+        'text-[13px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100',
         active
           ? 'bg-white/90 text-black'
           : 'bg-white/[0.03] text-white/18 hover:text-white/35 hover:bg-white/[0.05]',
@@ -127,7 +127,7 @@ function Toggle({ label, active, onChange }: { label: string; active: boolean; o
   return (
     <button
       onClick={() => onChange(!active)}
-      className="flex items-center gap-2 text-[11px] text-white/30 hover:text-white/50 transition-colors"
+      className="flex items-center gap-2 text-[14px] text-white/30 hover:text-white/50 transition-colors"
     >
       <div className={cn(
         'w-6 h-3.5 rounded-full transition-colors duration-150 relative',

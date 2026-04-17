@@ -26,7 +26,6 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
 
   useEffect(() => {
     if (open && searchable) inputRef.current?.focus()
-    if (!open) setSearch('')
   }, [open, searchable])
 
   const filtered = useMemo(() =>
@@ -39,13 +38,13 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
   return (
     <div ref={ref} className={cn('relative', className)}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => { const next = !open; setOpen(next); if (!next) setSearch('') }}
         className={cn(
-          'w-full flex items-center justify-between gap-2 bg-transparent border border-white/[0.06] rounded-md px-2.5 py-1.5 text-sm hover:border-white/[0.12] transition-colors outline-none',
+          'w-full flex items-center justify-between gap-2 bg-transparent border border-white/[0.06] rounded-md px-2.5 py-1.5 text-[15px] hover:border-white/[0.12] transition-colors outline-none',
           open && 'border-white/[0.15]',
         )}
       >
-        <span className={cn('truncate text-[12px]', value ? 'text-white/70' : 'text-white/20')}>{selectedLabel}</span>
+        <span className={cn('truncate text-[15px]', value ? 'text-white/70' : 'text-white/20')}>{selectedLabel}</span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
           className={cn('shrink-0 text-white/20 transition-transform duration-150', open && 'rotate-180')}>
           <path d="M2.5 3.75L5 6.25L7.5 3.75" />
@@ -61,20 +60,20 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search..."
-                className="w-full bg-white/[0.03] rounded px-2 py-1 text-[12px] text-white/70 outline-none placeholder:text-white/12"
+                className="w-full bg-white/[0.03] rounded px-2 py-1 text-[15px] text-white/70 outline-none placeholder:text-white/12"
               />
             </div>
           )}
           <div className="max-h-60 overflow-y-auto p-0.5">
             {filtered.length === 0 ? (
-              <div className="px-2.5 py-2.5 text-[11px] text-white/15 text-center">No results</div>
+              <div className="px-2.5 py-2.5 text-[14px] text-white/15 text-center">No results</div>
             ) : (
               filtered.map((o) => (
                 <button
                   key={o.value}
                   onClick={() => { onChange(o.value); setOpen(false) }}
                   className={cn(
-                    'w-full text-left px-2 py-[4px] text-[12px] rounded transition-colors',
+                    'w-full text-left px-3 py-[6px] text-[15px] rounded transition-colors',
                     o.value === value
                       ? 'bg-white/[0.07] text-white/80'
                       : 'text-white/40 hover:bg-white/[0.04] hover:text-white/70',

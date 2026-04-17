@@ -3,13 +3,16 @@ import { NODE_SCHEMAS } from './workflow-schema'
 import type { WorkflowPatch } from './workflow-mutations'
 import type { ChatCompletionResponse } from '../types/venice'
 import type { Node, Edge } from '@xyflow/react'
-import type { VeniceNodeData } from '../stores/workflow-store'
+import type { VeniceNodeData, VeniceNodeType } from '../stores/workflow-store'
 import type { ModelCatalog } from '../hooks/use-model-catalog'
 
 export interface AgentResponse {
   say: string
   patches: WorkflowPatch[]
+  invalidPatches: number
 }
+
+const VALID_OPS = new Set(['add_node', 'remove_node', 'set_params', 'move_node', 'connect', 'disconnect', 'clear'])
 
 function nodeCatalog(): string {
   return Object.values(NODE_SCHEMAS)
@@ -92,20 +95,75 @@ function describeDraft(draft: { nodes: Node<VeniceNodeData>[]; edges: Edge[] }):
 }
 
 function extractJson(raw: string): string {
-  const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
+  const trimmed = raw.trim()
+  const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (fence) return fence[1].trim()
-  const first = raw.indexOf('{')
-  const last = raw.lastIndexOf('}')
-  if (first !== -1 && last !== -1 && last > first) return raw.slice(first, last + 1)
-  return raw
+  // Find the largest balanced JSON object — guard against runaway prose.
+  const first = trimmed.indexOf('{')
+  const last = trimmed.lastIndexOf('}')
+  if (first !== -1 && last !== -1 && last > first) return trimmed.slice(first, last + 1)
+  return trimmed
+}
+
+function isValidPatch(p: unknown): p is WorkflowPatch {
+  if (!p || typeof p !== 'object') return false
+  const obj = p as Record<string, unknown>
+  if (typeof obj.op !== 'string' || !VALID_OPS.has(obj.op)) return false
+  switch (obj.op) {
+    case 'clear':
+      return true
+    case 'add_node':
+      return typeof obj.nodeType === 'string' && obj.nodeType in NODE_SCHEMAS
+    case 'remove_node':
+    case 'disconnect':
+      return typeof obj.id === 'string' && obj.id.length > 0
+    case 'set_params':
+      return typeof obj.id === 'string' && obj.id.length > 0 && typeof obj.params === 'object' && obj.params !== null
+    case 'move_node':
+      return typeof obj.id === 'string' && typeof obj.position === 'object' && obj.position !== null
+    case 'connect':
+      return typeof obj.source === 'string' && typeof obj.target === 'string' && obj.source !== obj.target
+  }
+  return false
+}
+
+function sanitizeParams(nodeType: VeniceNodeType, params: Record<string, unknown>): Partial<VeniceNodeData> {
+  const schema = NODE_SCHEMAS[nodeType]
+  if (!schema) return {}
+  const allowed = new Set(['model', 'prompt', ...schema.params.map((p) => p.name)])
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(params)) {
+    if (!allowed.has(k)) continue
+    out[k] = v
+  }
+  return out as Partial<VeniceNodeData>
 }
 
 export function parseAgentResponse(raw: string): AgentResponse {
-  const json = extractJson(raw.trim())
-  const parsed = JSON.parse(json) as { say?: unknown; patches?: unknown }
+  const json = extractJson(raw)
+  let parsed: { say?: unknown; patches?: unknown }
+  try {
+    parsed = JSON.parse(json) as { say?: unknown; patches?: unknown }
+  } catch {
+    return { say: '', patches: [], invalidPatches: 0 }
+  }
   const say = typeof parsed.say === 'string' ? parsed.say : ''
-  const patches = Array.isArray(parsed.patches) ? (parsed.patches as WorkflowPatch[]) : []
-  return { say, patches }
+  const rawPatches = Array.isArray(parsed.patches) ? parsed.patches : []
+  const patches: WorkflowPatch[] = []
+  let invalidPatches = 0
+  for (const raw of rawPatches) {
+    if (!isValidPatch(raw)) { invalidPatches++; continue }
+    if (raw.op === 'add_node' && raw.params) {
+      patches.push({ ...raw, params: sanitizeParams(raw.nodeType, raw.params as Record<string, unknown>) })
+    } else if (raw.op === 'set_params') {
+      // We can't strictly type-check params for set_params (we don't know the
+      // current node's type at parse time), so let the reducer handle invariants.
+      patches.push(raw)
+    } else {
+      patches.push(raw)
+    }
+  }
+  return { say, patches, invalidPatches }
 }
 
 interface CallAgentOptions {

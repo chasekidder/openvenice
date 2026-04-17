@@ -1,9 +1,11 @@
 import { useState, useRef } from 'react'
 import { useAuthStore } from '../../stores/auth-store'
 import { useImageEdit, useImageUpscale, useBackgroundRemove } from '../../hooks/use-image-tools'
+import { useBlobUrl } from '../../hooks/use-blob-url'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
 import { cn } from '../../lib/utils'
+import { toast } from '../../stores/toast-store'
 
 type Tool = 'edit' | 'upscale' | 'remove-bg'
 
@@ -25,7 +27,7 @@ export function ImageTools() {
   const [tool, setTool] = useState<Tool>('edit')
   const [imageData, setImageData] = useState<string | null>(null)
   const [imageName, setImageName] = useState('')
-  const [resultUrl, setResultUrl] = useState<string | null>(null)
+  const [resultUrl, setResultBlob, resetResult] = useBlobUrl()
   const fileRef = useRef<HTMLInputElement>(null)
 
   // Edit state
@@ -47,28 +49,27 @@ export function ImageTools() {
     reader.onload = () => {
       setImageData(reader.result as string)
       setImageName(file.name)
-      setResultUrl(null)
+      resetResult()
     }
     reader.readAsDataURL(file)
   }
 
   const handleProcess = () => {
     if (!imageData) return
-    if (resultUrl) URL.revokeObjectURL(resultUrl)
-    setResultUrl(null)
-
+    resetResult()
+    const opts = {
+      onSuccess: (blob: Blob) => setResultBlob(blob),
+      onError: (err: unknown) => toast.fromError(err, 'Image tool failed'),
+    }
     if (tool === 'edit') {
-      editMutation.mutate(
-        { image: imageData, prompt: editPrompt.trim(), modelId: editModel },
-        { onSuccess: setResultUrl },
-      )
+      editMutation.mutate({ image: imageData, prompt: editPrompt.trim(), modelId: editModel }, opts)
     } else if (tool === 'upscale') {
       upscaleMutation.mutate(
         { image: imageData, scale, enhance, enhanceCreativity: enhance ? enhanceCreativity : undefined, enhancePrompt: enhance && enhancePrompt.trim() ? enhancePrompt.trim() : undefined },
-        { onSuccess: setResultUrl },
+        opts,
       )
     } else {
-      bgRemoveMutation.mutate(imageData, { onSuccess: setResultUrl })
+      bgRemoveMutation.mutate(imageData, opts)
     }
   }
 
@@ -85,12 +86,12 @@ export function ImageTools() {
 
   return (
     <div className="flex h-full">
-      <div className="w-80 border-r border-white/[0.06] p-5 flex flex-col gap-4 overflow-y-auto shrink-0">
+      <div className="w-96 border-r border-white/[0.06] p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
         {/* Tool selector */}
         <div className="flex gap-px bg-white/[0.02] rounded-lg p-0.5 border border-white/[0.04]">
           {([['edit', 'Edit'], ['upscale', 'Upscale'], ['remove-bg', 'Remove BG']] as const).map(([id, label]) => (
-            <button key={id} onClick={() => { setTool(id); setResultUrl(null) }} className={cn(
-              'flex-1 px-2 py-1.5 text-[11px] font-medium rounded-[7px] transition-all duration-150',
+            <button key={id} onClick={() => { setTool(id); resetResult() }} className={cn(
+              'flex-1 px-2 py-2.5 text-[14px] font-medium rounded-[7px] transition-all duration-150',
               tool === id ? 'bg-white text-black' : 'text-white/25 hover:text-white/45',
             )}>
               {label}
@@ -105,21 +106,23 @@ export function ImageTools() {
             <div className="relative group">
               <img src={imageData} alt="Source" className="w-full rounded-lg border border-white/[0.06]" />
               <button
-                onClick={() => { setImageData(null); setImageName(''); setResultUrl(null) }}
-                className="absolute top-1.5 right-1.5 p-1 bg-black/60 rounded-md text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                onClick={() => { setImageData(null); setImageName(''); resetResult() }}
+                aria-label="Remove image"
+                className="absolute top-1.5 right-1.5 p-1 bg-black/60 rounded-md text-white/60 hover:text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
-              <span className="text-[10px] text-white/15 mt-1 block truncate">{imageName}</span>
+              <span className="text-[13px] text-white/15 mt-1 block truncate">{imageName}</span>
             </div>
           ) : (
-            <div
+            <button
+              type="button"
               onClick={() => fileRef.current?.click()}
-              className="border border-dashed border-white/[0.08] hover:border-white/[0.15] rounded-lg py-8 text-center cursor-pointer transition-colors"
+              className="w-full border border-dashed border-white/[0.08] hover:border-white/[0.15] rounded-lg py-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/30 focus-visible:outline-offset-2"
             >
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFileSelect(e.target.files[0]) }} />
-              <p className="text-[11px] text-white/15">Click to upload image</p>
-            </div>
+              <p className="text-[14px] text-white/40">Click to upload image</p>
+            </button>
           )}
         </div>
 
@@ -136,7 +139,7 @@ export function ImageTools() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <Label>Scale</Label>
-                <span className="text-[10px] text-white/30 font-mono">{scale}x</span>
+                <span className="text-[13px] text-white/30 font-mono">{scale}x</span>
               </div>
               <input type="range" min={1} max={4} step={1} value={scale} onChange={(e) => setScale(Number(e.target.value))} className="w-full" />
             </div>
@@ -160,7 +163,7 @@ export function ImageTools() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <Label>Creativity</Label>
-                    <span className="text-[10px] text-white/30 font-mono">{enhanceCreativity.toFixed(2)}</span>
+                    <span className="text-[13px] text-white/30 font-mono">{enhanceCreativity.toFixed(2)}</span>
                   </div>
                   <input type="range" min={0} max={1} step={0.05} value={enhanceCreativity} onChange={(e) => setEnhanceCreativity(Number(e.target.value))} className="w-full" />
                 </div>
@@ -180,12 +183,12 @@ export function ImageTools() {
         {error && <ErrorText>{error.message}</ErrorText>}
       </div>
 
-      <div className="flex-1 p-5 overflow-y-auto flex flex-col min-w-0">
+      <div className="flex-1 p-6 overflow-y-auto flex flex-col min-w-0">
         {resultUrl ? (
           <div className="animate-fade-in flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <Label>Result</Label>
-              <button onClick={downloadResult} className="text-[11px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1.5">
+              <button onClick={downloadResult} className="text-[14px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1.5">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
                 Download
               </button>

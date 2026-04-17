@@ -67,8 +67,16 @@ export function PlaygroundChat() {
         patchError = e instanceof Error ? e.message : 'Failed to apply patches'
       }
 
+      const invalidNote = response.invalidPatches > 0
+        ? ` (${response.invalidPatches} invalid patch${response.invalidPatches === 1 ? '' : 'es'} ignored)`
+        : ''
+
+      const fallbackSay = response.patches.length === 0 && !response.say
+        ? 'I couldn\'t parse a response. Try rephrasing or simplifying your request.'
+        : response.say || (response.patches.length > 0 ? 'Updated the workflow.' : '')
+
       updateMessage(pendingMsg.id, {
-        content: response.say || (response.patches.length > 0 ? 'Updated the workflow.' : ''),
+        content: fallbackSay + invalidNote,
         patches: response.patches,
         error: patchError,
         pending: false,

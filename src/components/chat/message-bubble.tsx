@@ -1,8 +1,22 @@
 import { useState, type ComponentPropsWithoutRef } from 'react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { ChatMessage, ContentPart } from '../../types/venice'
 import { cn } from '../../lib/utils'
+
+// Allow http/https/mailto links and image data: URIs only. Strips javascript:,
+// vbscript:, file:, and any other smuggled protocols.
+const SAFE_URL_PROTOCOLS = /^(https?:|mailto:|#|\/|\.)/i
+function safeUrlTransform(url: string, key: string): string {
+  if (!url) return ''
+  // react-markdown's default already handles most protocol filtering; we layer
+  // an explicit allow-list on top because we render untrusted model output.
+  const cleaned = defaultUrlTransform(url)
+  if (!cleaned) return ''
+  if (key === 'src' && cleaned.startsWith('data:image/')) return cleaned
+  if (SAFE_URL_PROTOCOLS.test(cleaned)) return cleaned
+  return ''
+}
 
 function CodeBlock({ children, className, ...props }: ComponentPropsWithoutRef<'code'>) {
   const match = /language-(\w+)/.exec(className || '')
@@ -17,11 +31,11 @@ function CodeBlock({ children, className, ...props }: ComponentPropsWithoutRef<'
   return (
     <div className="relative group/code">
       {lang && (
-        <div className="absolute top-0 left-0 px-3 py-1.5 text-[10px] text-white/15 font-mono uppercase tracking-wider select-none">{lang}</div>
+        <div className="absolute top-0 left-0 px-3 py-1.5 text-[13px] text-white/15 font-mono uppercase tracking-wider select-none">{lang}</div>
       )}
       <button
         onClick={() => { navigator.clipboard.writeText(codeStr); setCodeCopied(true); setTimeout(() => setCodeCopied(false), 1500) }}
-        className="absolute top-1.5 right-1.5 px-2 py-1 text-[10px] font-medium text-white/15 hover:text-white/40 bg-white/[0.03] hover:bg-white/[0.06] rounded-md transition-all opacity-0 group-hover/code:opacity-100"
+        className="absolute top-1.5 right-1.5 px-2 py-1 text-[13px] font-medium text-white/15 hover:text-white/40 bg-white/[0.03] hover:bg-white/[0.06] rounded-md transition-all opacity-0 group-hover/code:opacity-100"
       >
         {codeCopied ? 'Copied' : 'Copy'}
       </button>
@@ -50,7 +64,7 @@ interface MessageBubbleProps {
   onRegenerate?: () => void
 }
 
-export function MessageBubble({ message, index, onCopy, onDelete, onRegenerate }: MessageBubbleProps) {
+export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: MessageBubbleProps) {
   const [hovering, setHovering] = useState(false)
   const [copied, setCopied] = useState(false)
   const [reasoningOpen, setReasoningOpen] = useState(false)
@@ -89,7 +103,7 @@ export function MessageBubble({ message, index, onCopy, onDelete, onRegenerate }
       <div className="flex justify-end" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
         <div className="flex items-end gap-1 max-w-[75%]">
           {actions}
-          <div className="bg-white/[0.05] rounded-2xl rounded-br-sm px-3.5 py-2">
+          <div className="bg-white/[0.05] rounded-2xl rounded-br-sm px-4 py-2.5">
             {images.length > 0 && (
               <div className="flex gap-1.5 mb-2">
                 {images.map((img, i) => (
@@ -97,7 +111,7 @@ export function MessageBubble({ message, index, onCopy, onDelete, onRegenerate }
                 ))}
               </div>
             )}
-            <div className="text-white/80 text-[14px] leading-relaxed whitespace-pre-wrap break-words">
+            <div className="text-white/80 text-[17px] leading-relaxed whitespace-pre-wrap break-words">
               {content}
             </div>
           </div>
@@ -108,7 +122,7 @@ export function MessageBubble({ message, index, onCopy, onDelete, onRegenerate }
 
   return (
     <div className="flex gap-2.5" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
-      <div className="w-5 h-5 rounded bg-white/90 flex items-center justify-center shrink-0 mt-0.5">
+      <div className="w-7 h-7 rounded bg-white/90 flex items-center justify-center shrink-0 mt-0.5">
         <svg viewBox="0 0 32 32" width="12" height="12" fill="none">
           <g fill="#0a0a0a">
             <rect x="6.2" y="7.5" width="1.6" height="18" rx="0.8" transform="rotate(-42 6.2 7.5)" />
@@ -138,7 +152,7 @@ export function MessageBubble({ message, index, onCopy, onDelete, onRegenerate }
           <div className="mb-2">
             <button
               onClick={() => setReasoningOpen(!reasoningOpen)}
-              className="flex items-center gap-1.5 text-[11px] text-white/20 hover:text-white/35 transition-colors mb-1"
+              className="flex items-center gap-1.5 text-[14px] text-white/20 hover:text-white/35 transition-colors mb-1"
             >
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
                 className={cn('transition-transform duration-150', reasoningOpen && 'rotate-90')}>
@@ -147,7 +161,7 @@ export function MessageBubble({ message, index, onCopy, onDelete, onRegenerate }
               Thinking
             </button>
             {reasoningOpen && (
-              <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg px-3 py-2 text-[12px] text-white/30 leading-relaxed whitespace-pre-wrap animate-fade-in max-h-60 overflow-y-auto">
+              <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg px-3 py-2 text-[15px] text-white/30 leading-relaxed whitespace-pre-wrap animate-fade-in max-h-60 overflow-y-auto">
                 {message.reasoning_content}
               </div>
             )}
@@ -155,8 +169,19 @@ export function MessageBubble({ message, index, onCopy, onDelete, onRegenerate }
         )}
 
         {content ? (
-          <div className="prose-venice text-[14px] leading-relaxed text-white/60">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code: CodeBlock }}>{content}</ReactMarkdown>
+          <div className="prose-venice text-[17px] leading-relaxed text-white/60">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              urlTransform={safeUrlTransform}
+              components={{
+                code: CodeBlock,
+                a: ({ href, children, ...props }) => (
+                  <a {...props} href={href} target="_blank" rel="noopener noreferrer ugc">
+                    {children}
+                  </a>
+                ),
+              }}
+            >{content}</ReactMarkdown>
           </div>
         ) : (
           <span className="inline-flex gap-1.5 py-1.5">

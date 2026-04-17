@@ -11,15 +11,17 @@ import { AudioView } from './components/audio/audio-view'
 import { MusicView } from './components/music/music-view'
 import { VideoView } from './components/video/video-view'
 import { EmbeddingsView } from './components/embeddings/embeddings-view'
+import { ErrorBoundary } from './components/ui/error-boundary'
+import { Toaster } from './components/ui/toaster'
 
 const LazyWorkflowsView = lazy(() => import('./components/workflows/workflows-view').then((m) => ({ default: m.WorkflowsView })))
 function WorkflowsView() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/15">Loading workflows...</div>}><LazyWorkflowsView /></Suspense>
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading workflows…</div>}><LazyWorkflowsView /></Suspense>
 }
 
 const LazyPlaygroundView = lazy(() => import('./components/playground/playground-view').then((m) => ({ default: m.PlaygroundView })))
 function PlaygroundView() {
-  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/15">Loading playground...</div>}><LazyPlaygroundView /></Suspense>
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-white/30">Loading playground…</div>}><LazyPlaygroundView /></Suspense>
 }
 
 const views = {
@@ -38,6 +40,7 @@ const TAB_ORDER: Tab[] = ['chat', 'image', 'audio', 'music', 'video', 'embedding
 export function App() {
   const needsUnlock = useAuthStore((s) => s.hasEncrypted && !s.apiKey)
   const [apiKeyOpen, setApiKeyOpen] = useState(needsUnlock)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const activeTab = useSettingsStore((s) => s.activeTab)
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
   const ActiveView = views[activeTab]
@@ -50,6 +53,7 @@ export function App() {
       if (e.key === 'n') {
         e.preventDefault()
         setActiveTab('chat')
+        setMobileSidebarOpen(false)
         useChatStore.getState().setActiveConversation(null)
         return
       }
@@ -58,6 +62,7 @@ export function App() {
       if (num >= 1 && num <= TAB_ORDER.length) {
         e.preventDefault()
         setActiveTab(TAB_ORDER[num - 1])
+        setMobileSidebarOpen(false)
         return
       }
     }
@@ -67,15 +72,29 @@ export function App() {
   }, [setActiveTab])
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
-      <Sidebar />
+    <div className="flex h-[100dvh] w-screen overflow-hidden">
+      {/* Mobile drawer overlay */}
+      {mobileSidebarOpen && (
+        <button
+          aria-label="Close menu"
+          className="md:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm animate-fade-in"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+      <Sidebar mobileOpen={mobileSidebarOpen} onMobileClose={() => setMobileSidebarOpen(false)} />
       <div className="flex flex-col flex-1 min-w-0">
-        <Header onOpenApiKey={() => setApiKeyOpen(true)} />
+        <Header
+          onOpenApiKey={() => setApiKeyOpen(true)}
+          onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
+        />
         <main className="flex-1 min-h-0 overflow-hidden">
-          <ActiveView />
+          <ErrorBoundary key={activeTab}>
+            <ActiveView />
+          </ErrorBoundary>
         </main>
       </div>
       <ApiKeyDialog open={apiKeyOpen} onClose={() => setApiKeyOpen(false)} />
+      <Toaster />
     </div>
   )
 }

@@ -5,8 +5,15 @@ import { useStyles } from '../../hooks/use-styles'
 import { useImageGenerate } from '../../hooks/use-image'
 import { useAuthStore } from '../../stores/auth-store'
 import { Select } from '../ui/select'
-import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, EmptyState } from '../ui/shared'
+import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, ExamplePrompts } from '../ui/shared'
 import type { ImageConstraints } from '../../types/venice'
+
+const IMAGE_EXAMPLES = [
+  'A serene mountain lake at golden hour, low fog over the water, painterly',
+  'Macro photo of a dewdrop on a spider web, sunrise lighting',
+  'Cyberpunk street market at night, neon signs reflecting in puddles',
+  'Children\'s book illustration of a fox reading a book under a mushroom',
+]
 
 function toImageSrc(b64: string): string {
   if (b64.startsWith('data:')) return b64
@@ -50,7 +57,7 @@ export function ImageView() {
   const [style, setStyle] = useState('')
   const [steps, setSteps] = useState(defaultSteps)
   const [variants, setVariants] = useState(1)
-  const [hideWatermark, setHideWatermark] = useState(true)
+  const [hideWatermark] = useState(true)
   const [images, setImages] = useState<string[]>([])
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
@@ -107,7 +114,7 @@ export function ImageView() {
     }
 
     mutation.mutate(
-      req as Parameters<typeof mutation.mutate>[0],
+      req as unknown as Parameters<typeof mutation.mutate>[0],
       {
         onSuccess: (data) => {
           const newImages = data.images.map((img) => typeof img === 'string' ? img : img.b64_json)
@@ -119,11 +126,11 @@ export function ImageView() {
 
   return (
     <div className="flex h-full">
-      <div className="w-80 border-r border-white/[0.06] p-5 flex flex-col gap-4 overflow-y-auto shrink-0">
+      <div className="w-96 border-r border-white/[0.06] p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
         <div>
           <Label>Prompt</Label>
           <TextArea value={prompt} onChange={setPrompt} placeholder="A serene mountain landscape at golden hour..." />
-          <span className="text-[10px] text-white/10 mt-1 block">{prompt.length}/{promptLimit}</span>
+          <span className="text-[13px] text-white/10 mt-1 block">{prompt.length}/{promptLimit}</span>
         </div>
         <div><Label>Negative prompt</Label><TextArea value={negativePrompt} onChange={setNegativePrompt} placeholder="blurry, low quality..." rows={2} /></div>
 
@@ -144,7 +151,7 @@ export function ImageView() {
         <div>
           <div className="flex items-center justify-between mb-1">
             <Label>Steps</Label>
-            <span className="text-[10px] text-white/30 font-mono">{steps}</span>
+            <span className="text-[13px] text-white/30 font-mono">{steps}</span>
           </div>
           <input type="range" min={1} max={maxSteps} value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="w-full" />
         </div>
@@ -152,16 +159,18 @@ export function ImageView() {
         <div>
           <div className="flex items-center justify-between mb-1">
             <Label>Variants</Label>
-            <span className="text-[10px] text-white/30 font-mono">{variants}</span>
+            <span className="text-[13px] text-white/30 font-mono">{variants}</span>
           </div>
           <input type="range" min={1} max={4} value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="w-full" />
         </div>
 
-        <PrimaryButton onClick={handleGenerate} disabled={!prompt.trim() || !apiKey} loading={mutation.isPending}>Generate</PrimaryButton>
+        <PrimaryButton onClick={handleGenerate} disabled={!prompt.trim() || !apiKey} loading={mutation.isPending}>
+          {mutation.isPending ? 'Generating…' : 'Generate'}
+        </PrimaryButton>
         {mutation.error && <ErrorText>{mutation.error.message}</ErrorText>}
       </div>
 
-      <div className="flex-1 p-5 overflow-y-auto min-w-0">
+      <div className="flex-1 p-6 overflow-y-auto min-w-0">
         {selectedImage && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm" onClick={() => setSelectedImage(null)}>
             <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -178,7 +187,9 @@ export function ImageView() {
           </div>
         )}
         {images.length === 0 ? (
-          <EmptyState>Generated images appear here</EmptyState>
+          <div className="flex items-center justify-center h-full">
+            <ExamplePrompts items={IMAGE_EXAMPLES} onPick={setPrompt} />
+          </div>
         ) : (
           <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
             {images.map((img, i) => (

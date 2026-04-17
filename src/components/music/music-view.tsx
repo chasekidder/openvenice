@@ -41,7 +41,7 @@ export function MusicView() {
   const [duration, setDuration] = useState(30)
   const [instrumental, setInstrumental] = useState(false)
 
-  const { queue, isQueueing, status, audioUrl, error, reset } = useMusic()
+  const { queue, isQueueing, status, audioUrl, error, reset, cancel, elapsedMs } = useMusic()
   const isProcessing = status === 'queued' || status === 'processing'
 
   const handleGenerate = () => {
@@ -58,7 +58,7 @@ export function MusicView() {
 
   return (
     <div className="flex h-full">
-      <div className="w-80 border-r border-white/[0.06] p-5 flex flex-col gap-4 overflow-y-auto shrink-0">
+      <div className="w-96 border-r border-white/[0.06] p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
         <div>
           <Label>Prompt</Label>
           <TextArea value={prompt} onChange={setPrompt} placeholder="An upbeat electronic track with a driving bassline and ethereal synths..." rows={4} />
@@ -75,7 +75,7 @@ export function MusicView() {
           <div>
             <div className="flex items-center justify-between mb-1">
               <Label>Duration</Label>
-              <span className="text-[10px] text-white/30 font-mono">{duration}s</span>
+              <span className="text-[16px] text-white/30 font-mono">{duration}s</span>
             </div>
             <input type="range" min={5} max={120} step={5} value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full" />
           </div>
@@ -117,37 +117,64 @@ export function MusicView() {
         {error && (
           <div className="flex items-center justify-between">
             <ErrorText>{error}</ErrorText>
-            <button onClick={reset} className="text-[11px] text-white/20 hover:text-white/40 underline underline-offset-2 shrink-0 ml-2 transition-colors">Reset</button>
+            <button onClick={reset} className="text-[14px] text-white/20 hover:text-white/40 underline underline-offset-2 shrink-0 ml-2 transition-colors">Reset</button>
           </div>
         )}
       </div>
 
-      <div className="flex-1 p-5 overflow-y-auto flex flex-col min-w-0">
+      <div className="flex-1 p-6 overflow-y-auto flex flex-col min-w-0">
         {audioUrl ? (
           <div className="animate-fade-in flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <Label>Output</Label>
-              <a href={audioUrl} download="venice-music.mp3" target="_blank" rel="noopener noreferrer" className="text-[11px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1.5">
+              <a href={audioUrl} download="venice-music.mp3" target="_blank" rel="noopener noreferrer" className="text-[14px] text-white/20 hover:text-white/40 transition-colors flex items-center gap-1.5">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
                 Download
               </a>
             </div>
             <audio controls src={audioUrl} className="w-full" />
             <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-4">
-              <p className="text-[12px] text-white/30 leading-relaxed">{prompt}</p>
-              {lyrics && <p className="text-[11px] text-white/15 mt-2 italic">{lyrics}</p>}
+              <p className="text-[15px] text-white/30 leading-relaxed">{prompt}</p>
+              {lyrics && <p className="text-[14px] text-white/15 mt-2 italic">{lyrics}</p>}
             </div>
-            <button onClick={reset} className="self-start text-[11px] text-white/15 hover:text-white/35 transition-colors">Generate another</button>
+            <button onClick={reset} className="self-start text-[14px] text-white/15 hover:text-white/35 transition-colors">Generate another</button>
           </div>
         ) : (
-          <div className="flex items-center justify-center flex-1 text-white/10 text-[13px]">
+          <div className="flex items-center justify-center flex-1 text-white/30 text-[15px]">
             {isProcessing ? (
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-7 h-7 border border-white/[0.08] border-t-white/30 rounded-full animate-spin" />
-                <span className="text-white/20">{status === 'queued' ? 'Queued...' : 'Generating music...'}</span>
+              <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
+                <div className="w-7 h-7 border border-white/[0.08] border-t-white/40 rounded-full animate-spin" />
+                <span className="text-white/55 text-center">
+                  {status === 'queued' ? 'Queued — waiting for a slot' : 'Composing your track'}
+                  {elapsedMs > 0 && (
+                    <span className="block text-[12px] text-white/30 font-mono mt-1">
+                      {formatElapsedMusic(elapsedMs)} · typically 20s–90s
+                    </span>
+                  )}
+                </span>
+                <button
+                  onClick={cancel}
+                  className="text-[13px] text-white/35 hover:text-white/65 underline underline-offset-2 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : !prompt ? (
+              <div className="max-w-md w-full flex flex-col gap-2">
+                <div className="text-[12px] uppercase tracking-[0.08em] text-white/35 font-medium text-left">Try one of these</div>
+                {MUSIC_EXAMPLES.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPrompt(p)}
+                    className="text-left px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all text-[14px] text-white/65 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
+                  >
+                    {p}
+                  </button>
+                ))}
               </div>
             ) : (
-              'Generated music appears here'
+              <span>Press Generate to create your track</span>
             )}
           </div>
         )}
@@ -156,9 +183,22 @@ export function MusicView() {
   )
 }
 
+const MUSIC_EXAMPLES = [
+  'Lo-fi hip-hop beat with vinyl crackle and rain — 80 bpm, mellow',
+  'Cinematic orchestral build — slow strings rising into triumphant brass',
+  'Synthwave with retro arpeggios, warm pads, gated reverb drums — 105 bpm',
+  'Acoustic folk fingerpicking, soft female vocals, intimate room sound',
+]
+
+function formatElapsedMusic(ms: number): string {
+  const s = Math.floor(ms / 1000)
+  const m = Math.floor(s / 60)
+  return m > 0 ? `${m}m ${s % 60}s` : `${s}s`
+}
+
 function Tag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[10px] text-white/20 bg-white/[0.03] border border-white/[0.04] rounded px-1.5 py-0.5">
+    <span className="text-[12px] text-white/55 bg-white/[0.04] border border-white/[0.06] rounded px-1.5 py-0.5">
       {children}
     </span>
   )

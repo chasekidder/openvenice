@@ -1,7 +1,11 @@
 import type { VeniceError } from '../types/venice'
 import { useAuthStore } from '../stores/auth-store'
 
-const BASE_URL = '/venice/api/v1'
+const ENV_BASE = (import.meta.env.VITE_VENICE_BASE_URL as string | undefined)?.replace(/\/$/, '')
+const BASE_URL = ENV_BASE || (import.meta.env.DEV ? '/venice/api/v1' : 'https://api.venice.ai/api/v1')
+
+const RETRY_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504])
+const MAX_RETRIES = 2
 
 export class VeniceAPIError extends Error {
   status: number
@@ -19,98 +23,97 @@ export class VeniceAPIError extends Error {
 
 function getApiKey(): string {
   const key = useAuthStore.getState().apiKey
-  if (!key) throw new VeniceAPIError('API key not set', 401)
+  if (!key) throw new VeniceAPIError('API key not set. Click "API Key" in the header to connect.', 401)
   return key
 }
 
-export async function venice<T>(
-  path: string,
-  options: RequestInit & { stream?: boolean; noAuth?: boolean } = {},
-): Promise<T> {
-  const { stream, noAuth, ...fetchOptions } = options
-  const headers = new Headers(fetchOptions.headers)
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-  if (!noAuth) {
-    headers.set('Authorization', `Bearer ${getApiKey()}`)
+function backoffDelay(attempt: number, retryAfter?: string | null): number {
+  if (retryAfter) {
+    const secs = Number(retryAfter)
+    if (Number.isFinite(secs) && secs > 0) return Math.min(secs * 1000, 30_000)
   }
+  // Exponential backoff with jitter: 500, 1000, 2000 ms (+/- 25%)
+  const base = 500 * 2 ** attempt
+  return base + Math.random() * base * 0.25
+}
+
+async function parseError(res: Response): Promise<VeniceAPIError> {
+  let message = `HTTP ${res.status}`
+  let code: string | undefined
+  let suggestedPrompt: string | undefined
+  try {
+    const err = (await res.json()) as VeniceError
+    message = err.error?.message ?? message
+    code = err.error?.code
+    suggestedPrompt = err.error?.suggested_prompt
+  } catch {
+    /* keep default */
+  }
+  return new VeniceAPIError(message, res.status, code, suggestedPrompt)
+}
+
+interface VeniceFetchOptions extends RequestInit {
+  stream?: boolean
+  noAuth?: boolean
+  retries?: number
+}
+
+async function veniceFetch(path: string, options: VeniceFetchOptions): Promise<Response> {
+  const { stream, noAuth, retries = MAX_RETRIES, ...fetchOptions } = options
+  const headers = new Headers(fetchOptions.headers)
+  if (!noAuth) headers.set('Authorization', `Bearer ${getApiKey()}`)
   if (fetchOptions.body && typeof fetchOptions.body === 'string') {
     headers.set('Content-Type', 'application/json')
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...fetchOptions,
-    headers,
-  })
-
-  if (!res.ok) {
-    let errorMessage = `HTTP ${res.status}`
-    let code: string | undefined
-    let suggestedPrompt: string | undefined
+  let lastErr: unknown
+  for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const err = (await res.json()) as VeniceError
-      errorMessage = err.error.message
-      code = err.error.code
-      suggestedPrompt = err.error.suggested_prompt
-    } catch { /* use default */ }
-    throw new VeniceAPIError(errorMessage, res.status, code, suggestedPrompt)
-  }
+      const res = await fetch(`${BASE_URL}${path}`, { ...fetchOptions, headers })
+      if (res.ok) return res
 
-  if (stream) {
-    return res.body as unknown as T
-  }
+      // Don't retry client errors (auth, validation) or terminal failures
+      if (!RETRY_STATUSES.has(res.status) || attempt === retries) throw await parseError(res)
 
+      // Drain body so connection can be reused
+      try { await res.arrayBuffer() } catch { /* noop */ }
+      await sleep(backoffDelay(attempt, res.headers.get('Retry-After')))
+      continue
+    } catch (err) {
+      lastErr = err
+      // Network error: retry up to limit
+      if (err instanceof VeniceAPIError) throw err
+      if (err instanceof DOMException && err.name === 'AbortError') throw err
+      if (attempt === retries) break
+      await sleep(backoffDelay(attempt))
+    }
+    void stream // suppress unused-var lint (kept for future per-call overrides)
+  }
+  throw lastErr instanceof Error ? lastErr : new VeniceAPIError('Network error', 0)
+}
+
+export async function venice<T>(path: string, options: VeniceFetchOptions = {}): Promise<T> {
+  const res = await veniceFetch(path, options)
+  if (options.stream) return res.body as unknown as T
   return res.json() as Promise<T>
 }
 
-export async function veniceFormData<T>(
-  path: string,
-  formData: FormData,
-): Promise<T> {
-  const headers = new Headers({
-    'Authorization': `Bearer ${getApiKey()}`,
-  })
-
-  const res = await fetch(`${BASE_URL}${path}`, {
+export async function veniceFormData<T>(path: string, formData: FormData, init: { signal?: AbortSignal } = {}): Promise<T> {
+  const res = await veniceFetch(path, {
     method: 'POST',
-    headers,
     body: formData,
+    signal: init.signal,
   })
-
-  if (!res.ok) {
-    let errorMessage = `HTTP ${res.status}`
-    try {
-      const err = (await res.json()) as VeniceError
-      errorMessage = err.error.message
-    } catch { /* use default */ }
-    throw new VeniceAPIError(errorMessage, res.status)
-  }
-
   return res.json() as Promise<T>
 }
 
-export async function veniceBlob(
-  path: string,
-  body: object,
-): Promise<Blob> {
-  const headers = new Headers({
-    'Authorization': `Bearer ${getApiKey()}`,
-    'Content-Type': 'application/json',
-  })
-
-  const res = await fetch(`${BASE_URL}${path}`, {
+export async function veniceBlob(path: string, body: object, init: { signal?: AbortSignal } = {}): Promise<Blob> {
+  const res = await veniceFetch(path, {
     method: 'POST',
-    headers,
     body: JSON.stringify(body),
+    signal: init.signal,
   })
-
-  if (!res.ok) {
-    let errorMessage = `HTTP ${res.status}`
-    try {
-      const err = (await res.json()) as VeniceError
-      errorMessage = err.error.message
-    } catch { /* use default */ }
-    throw new VeniceAPIError(errorMessage, res.status)
-  }
-
   return res.blob()
 }

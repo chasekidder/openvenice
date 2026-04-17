@@ -20,11 +20,17 @@ const tabLabels: Record<string, string> = {
   video: 'Video',
   embeddings: 'Embeddings',
   workflows: 'Workflows',
+  playground: 'Playground',
 }
 
-const noModelSelector = new Set(['video', 'workflows'])
+const noModelSelector = new Set(['video', 'workflows', 'playground'])
 
-export function Header({ onOpenApiKey }: { onOpenApiKey: () => void }) {
+interface Props {
+  onOpenApiKey: () => void
+  onOpenMobileSidebar?: () => void
+}
+
+export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const { activeTab, selectedModels, setSelectedModel, toggleSidebar } = useSettingsStore()
   const apiKey = useAuthStore((s) => s.apiKey)
   const hasOwnSelector = noModelSelector.has(activeTab)
@@ -34,25 +40,41 @@ export function Header({ onOpenApiKey }: { onOpenApiKey: () => void }) {
   const modelOptions = hasOwnSelector ? [] : (models?.map((m) => ({ value: m.id, label: m.model_spec?.name || m.id })) ?? [])
 
   return (
-    <header className="flex items-center gap-2.5 h-10 px-2.5 border-b border-white/[0.06] bg-[#0a0a0a] shrink-0">
-      <button onClick={toggleSidebar} className="text-white/20 hover:text-white/45 transition-colors p-1">
+    <header className="flex items-center gap-2.5 h-12 px-2.5 border-b border-white/[0.06] bg-[#0a0a0a] shrink-0">
+      {/* Mobile menu toggle */}
+      <button
+        onClick={() => onOpenMobileSidebar?.()}
+        aria-label="Open menu"
+        className="md:hidden text-white/45 hover:text-white/80 transition-colors p-1.5 -ml-1 rounded-md focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
+          <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
+        </svg>
+      </button>
+
+      {/* Desktop sidebar collapse toggle */}
+      <button
+        onClick={toggleSidebar}
+        aria-label="Toggle sidebar"
+        className="hidden md:block text-white/45 hover:text-white/80 transition-colors p-1 rounded-md focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
+      >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
           <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="16" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
         </svg>
       </button>
 
-      <span className="text-[10px] font-medium text-white/15 uppercase tracking-[0.08em]">{tabLabels[activeTab]}</span>
+      <span className="text-[13px] font-medium text-white/45 uppercase tracking-[0.08em]">{tabLabels[activeTab]}</span>
 
       {!hasOwnSelector && (
         <>
-          <div className="w-px h-4 bg-white/[0.06]" />
+          <div className="w-px h-4 bg-white/[0.06]" aria-hidden />
           <Select
             value={currentModel}
             onChange={(v) => setSelectedModel(activeTab, v)}
             options={modelOptions}
             searchable
             placeholder="Select model..."
-            className="w-60"
+            className="w-44 sm:w-60"
           />
         </>
       )}
@@ -61,10 +83,11 @@ export function Header({ onOpenApiKey }: { onOpenApiKey: () => void }) {
 
       <button
         onClick={onOpenApiKey}
-        className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-md border border-white/[0.05] hover:border-white/[0.1] transition-colors"
+        aria-label={apiKey ? 'API key connected, manage' : 'Connect API key'}
+        className="flex items-center gap-1.5 text-[13px] px-2 py-1 rounded-md border border-white/[0.08] hover:border-white/[0.18] transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
       >
-        <div className={`w-1 h-1 rounded-full transition-colors ${apiKey ? 'bg-white/70' : 'bg-white/10'}`} />
-        <span className={apiKey ? 'text-white/45' : 'text-white/20'}>
+        <span aria-hidden className={`w-1.5 h-1.5 rounded-full transition-colors ${apiKey ? 'bg-green-400/85' : 'bg-white/25'}`} />
+        <span className={apiKey ? 'text-white/65' : 'text-white/55'}>
           {apiKey ? 'Connected' : 'API Key'}
         </span>
       </button>
