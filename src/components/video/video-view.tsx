@@ -4,6 +4,7 @@ import { useVideoModels, type VideoModelGroup } from '../../hooks/use-models'
 import { useVideo } from '../../hooks/use-video'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText } from '../ui/shared'
+import { GenerationView } from '../ui/generation-view'
 import { cn } from '../../lib/utils'
 import type { VideoQueueRequest, VideoConstraints } from '../../types/venice'
 
@@ -109,9 +110,8 @@ export function VideoView() {
     if (constraints?.audio_input) tags.push('Audio Input')
   }
 
-  return (
-    <div className="flex h-full">
-      <div className="w-96 border-r border-white/[0.06] p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
+  const controls = (
+    <>
         {/* Model selector */}
         <div>
           <Label>Model</Label>
@@ -256,15 +256,17 @@ export function VideoView() {
         >
           {isProcessing ? (status === 'queued' ? 'Queued...' : 'Processing...') : 'Generate Video'}
         </PrimaryButton>
-        {error && (
-          <div className="flex items-center justify-between">
-            <ErrorText>{error}</ErrorText>
-            <button onClick={reset} className="text-[14px] text-white/20 hover:text-white/40 underline underline-offset-2 shrink-0 ml-2 transition-colors">Reset</button>
-          </div>
-        )}
-      </div>
+      {error && (
+        <div className="flex items-center justify-between gap-2">
+          <ErrorText>{error}</ErrorText>
+          <button onClick={reset} className="text-[13px] text-white/55 hover:text-white underline underline-offset-2 shrink-0 transition-colors">Reset</button>
+        </div>
+      )}
+    </>
+  )
 
-      <div className="flex-1 p-6 overflow-y-auto flex flex-col min-w-0">
+  const output = (
+    <div className="flex flex-col h-full">
         {videoUrl ? (
           <div className="animate-fade-in flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -300,14 +302,15 @@ export function VideoView() {
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <span>Generated videos appear here</span>
-                <span className="text-[12px] text-white/20">Average generation time: 30s–2min</span>
+                <span className="text-[12px] text-white/35">Average generation time: 30s–2min</span>
               </div>
             )}
           </div>
         )}
-      </div>
     </div>
   )
+
+  return <GenerationView controls={controls} output={output} />
 }
 
 function formatElapsed(ms: number): string {

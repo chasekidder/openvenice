@@ -1,7 +1,7 @@
 import { venice } from './venice-client'
 import { NODE_SCHEMAS } from './workflow-schema'
 import type { WorkflowPatch } from './workflow-mutations'
-import type { ChatCompletionResponse } from '../types/venice'
+import type { ChatCompletionResponse, ModelCapabilities } from '../types/venice'
 import type { Node, Edge } from '@xyflow/react'
 import type { VeniceNodeData, VeniceNodeType } from '../stores/workflow-store'
 import type { ModelCatalog } from '../hooks/use-model-catalog'
@@ -13,6 +13,10 @@ export interface AgentResponse {
 }
 
 const VALID_OPS = new Set(['add_node', 'remove_node', 'set_params', 'move_node', 'connect', 'disconnect', 'clear'])
+
+// Empirically validated default — see scripts/agent-bench results.
+// qwen3-next-80b: ~2s, perfect output, supports response_format.
+export const DEFAULT_AGENT_MODEL = 'qwen3-next-80b'
 
 function nodeCatalog(): string {
   return Object.values(NODE_SCHEMAS)
@@ -98,7 +102,6 @@ function extractJson(raw: string): string {
   const trimmed = raw.trim()
   const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (fence) return fence[1].trim()
-  // Find the largest balanced JSON object — guard against runaway prose.
   const first = trimmed.indexOf('{')
   const last = trimmed.lastIndexOf('}')
   if (first !== -1 && last !== -1 && last > first) return trimmed.slice(first, last + 1)
@@ -156,8 +159,6 @@ export function parseAgentResponse(raw: string): AgentResponse {
     if (raw.op === 'add_node' && raw.params) {
       patches.push({ ...raw, params: sanitizeParams(raw.nodeType, raw.params as Record<string, unknown>) })
     } else if (raw.op === 'set_params') {
-      // We can't strictly type-check params for set_params (we don't know the
-      // current node's type at parse time), so let the reducer handle invariants.
       patches.push(raw)
     } else {
       patches.push(raw)
@@ -172,27 +173,60 @@ interface CallAgentOptions {
   history: Array<{ role: 'user' | 'assistant'; content: string }>
   catalog?: ModelCatalog
   model?: string
+  /** Capabilities of the chosen model. Used to skip response_format on models that 400 on it. */
+  capabilities?: ModelCapabilities
   signal?: AbortSignal
 }
 
-export async function callAgent({ userMessage, draft, history, catalog, model = 'llama-3.3-70b', signal }: CallAgentOptions): Promise<AgentResponse> {
+async function singleCall(opts: {
+  model: string
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
+  temperature: number
+  useResponseFormat: boolean
+  signal?: AbortSignal
+}): Promise<string> {
+  const body: Record<string, unknown> = {
+    model: opts.model,
+    messages: opts.messages,
+    temperature: opts.temperature,
+    max_tokens: 4096,
+  }
+  if (opts.useResponseFormat) body.response_format = { type: 'json_object' }
+  const resp = await venice<ChatCompletionResponse>('/chat/completions', {
+    method: 'POST',
+    body: JSON.stringify(body),
+    signal: opts.signal,
+  })
+  return resp.choices[0]?.message?.content ?? ''
+}
+
+export async function callAgent({ userMessage, draft, history, catalog, model, capabilities, signal }: CallAgentOptions): Promise<AgentResponse> {
+  const chosenModel = model || DEFAULT_AGENT_MODEL
+  // Only request structured output if the model supports it. Sending response_format
+  // to llama-3.3-70b returns HTTP 400; sending it to gpt-4o-mini degrades quality.
+  const useRF = capabilities?.supportsResponseSchema === true
   const messages = [
     { role: 'system' as const, content: buildSystemPrompt(catalog) },
     ...history.map((m) => ({ role: m.role, content: m.content })),
-    { role: 'user' as const, content: `${describeDraft(draft)}\n\nUser: ${userMessage}` },
+    { role: 'user' as const, content: `${describeDraft(draft)}\n\nUser: ${userMessage}\n\nReply with a single JSON object: {"say": "...", "patches": [...]}. No prose, no markdown fences.` },
   ]
 
-  const resp = await venice<ChatCompletionResponse>('/chat/completions', {
-    method: 'POST',
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: 0.3,
-      max_tokens: 4096,
-    }),
-    signal,
-  })
+  const raw = await singleCall({ model: chosenModel, messages, temperature: 0.3, useResponseFormat: useRF, signal })
+  const parsed = parseAgentResponse(raw)
 
-  const raw = resp.choices[0]?.message?.content ?? ''
-  return parseAgentResponse(raw)
+  if (parsed.patches.length === 0 && !parsed.say && raw.length > 0) {
+    const retryMessages = [
+      ...messages,
+      { role: 'assistant' as const, content: raw },
+      { role: 'user' as const, content: 'That was not valid JSON. Reply again with ONLY a single JSON object matching {"say": string, "patches": Patch[]}. No commentary, no fences.' },
+    ]
+    try {
+      const retryRaw = await singleCall({ model: chosenModel, messages: retryMessages, temperature: 0, useResponseFormat: useRF, signal })
+      return parseAgentResponse(retryRaw)
+    } catch {
+      // fall through with the original (empty) response
+    }
+  }
+
+  return parsed
 }

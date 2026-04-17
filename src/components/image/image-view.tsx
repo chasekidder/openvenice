@@ -6,6 +6,7 @@ import { useImageGenerate } from '../../hooks/use-image'
 import { useAuthStore } from '../../stores/auth-store'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, ExamplePrompts } from '../ui/shared'
+import { GenerationView } from '../ui/generation-view'
 import type { ImageConstraints } from '../../types/venice'
 
 const IMAGE_EXAMPLES = [
@@ -124,94 +125,97 @@ export function ImageView() {
     )
   }
 
-  return (
-    <div className="flex h-full">
-      <div className="w-96 border-r border-white/[0.06] p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
-        <div>
-          <Label>Prompt</Label>
-          <TextArea value={prompt} onChange={setPrompt} placeholder="A serene mountain landscape at golden hour..." />
-          <span className="text-[13px] text-white/10 mt-1 block">{prompt.length}/{promptLimit}</span>
-        </div>
-        <div><Label>Negative prompt</Label><TextArea value={negativePrompt} onChange={setNegativePrompt} placeholder="blurry, low quality..." rows={2} /></div>
+  const controls = (
+    <>
+      <div>
+        <Label hint={`${prompt.length}/${promptLimit}`}>Prompt</Label>
+        <TextArea value={prompt} onChange={setPrompt} placeholder="A serene mountain landscape at golden hour…" />
+      </div>
+      <div><Label>Negative prompt</Label><TextArea value={negativePrompt} onChange={setNegativePrompt} placeholder="blurry, low quality…" rows={2} /></div>
 
-        {/* Show aspect ratio pills for models that support them */}
-        {hasAspectRatios ? (
-          <div><Label>Aspect Ratio</Label><PillGroup options={aspectOptions} value={aspectRatio} onChange={setAspectRatio} /></div>
-        ) : (
-          <div><Label>Size</Label><PillGroup options={DEFAULT_SIZES} value={sizeIdx} onChange={setSizeIdx} /></div>
-        )}
+      {hasAspectRatios ? (
+        <div><Label>Aspect Ratio</Label><PillGroup options={aspectOptions} value={aspectRatio} onChange={setAspectRatio} /></div>
+      ) : (
+        <div><Label>Size</Label><PillGroup options={DEFAULT_SIZES} value={sizeIdx} onChange={setSizeIdx} /></div>
+      )}
 
-        {/* Named resolutions for models like Nano Banana */}
-        {hasResolutions && (
-          <div><Label>Resolution</Label><PillGroup options={resolutionOptions} value={resolution || resolutionOptions[0]?.value || ''} onChange={setResolution} /></div>
-        )}
+      {hasResolutions && (
+        <div><Label>Resolution</Label><PillGroup options={resolutionOptions} value={resolution || resolutionOptions[0]?.value || ''} onChange={setResolution} /></div>
+      )}
 
-        <div><Label>Style</Label><Select value={style} onChange={setStyle} options={styleOptions} searchable placeholder="None" /></div>
+      <div><Label>Style</Label><Select value={style} onChange={setStyle} options={styleOptions} searchable placeholder="None" /></div>
 
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <Label>Steps</Label>
-            <span className="text-[13px] text-white/30 font-mono">{steps}</span>
-          </div>
-          <input type="range" min={1} max={maxSteps} value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="w-full" />
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <Label>Variants</Label>
-            <span className="text-[13px] text-white/30 font-mono">{variants}</span>
-          </div>
-          <input type="range" min={1} max={4} value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="w-full" />
-        </div>
-
-        <PrimaryButton onClick={handleGenerate} disabled={!prompt.trim() || !apiKey} loading={mutation.isPending}>
-          {mutation.isPending ? 'Generating…' : 'Generate'}
-        </PrimaryButton>
-        {mutation.error && <ErrorText>{mutation.error.message}</ErrorText>}
+      <div>
+        <Label hint={String(steps)}>Steps</Label>
+        <input type="range" min={1} max={maxSteps} value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="w-full" />
+      </div>
+      <div>
+        <Label hint={String(variants)}>Variants</Label>
+        <input type="range" min={1} max={4} value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="w-full" />
       </div>
 
-      <div className="flex-1 p-6 overflow-y-auto min-w-0">
-        {selectedImage && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm" onClick={() => setSelectedImage(null)}>
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
-              <img src={toImageSrc(selectedImage)} alt="Generated" className="max-w-[90vw] max-h-[90vh] rounded-lg" />
-              <div className="absolute top-3 right-3 flex gap-1.5">
-                <button onClick={() => downloadImage(selectedImage)} className="p-2 bg-black/50 hover:bg-black/70 rounded-lg text-white/60 hover:text-white transition-colors backdrop-blur-sm" title="Download">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
-                </button>
-                <button onClick={() => setSelectedImage(null)} className="p-2 bg-black/50 hover:bg-black/70 rounded-lg text-white/60 hover:text-white transition-colors backdrop-blur-sm" title="Close">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                </button>
-              </div>
+      <PrimaryButton onClick={handleGenerate} disabled={!prompt.trim() || !apiKey} loading={mutation.isPending} size="lg">
+        {mutation.isPending ? 'Generating…' : 'Generate'}
+      </PrimaryButton>
+      {mutation.error && <ErrorText>{mutation.error.message}</ErrorText>}
+    </>
+  )
+
+  const output = (
+    <>
+      {selectedImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedImage(null)}>
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <img src={toImageSrc(selectedImage)} alt="Generated" className="max-w-[90vw] max-h-[90vh] rounded-xl shadow-2xl" />
+            <div className="absolute top-3 right-3 flex gap-1.5">
+              <button onClick={() => downloadImage(selectedImage)} aria-label="Download" className="p-2 bg-black/60 hover:bg-black/80 rounded-lg text-white/70 hover:text-white transition-colors backdrop-blur-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+              </button>
+              <button onClick={() => setSelectedImage(null)} aria-label="Close" className="p-2 bg-black/60 hover:bg-black/80 rounded-lg text-white/70 hover:text-white transition-colors backdrop-blur-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
             </div>
           </div>
-        )}
-        {images.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
+        </div>
+      )}
+      {images.length === 0 ? (
+        <div className="flex items-center justify-center h-full">
+          {mutation.isPending ? (
+            <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
+              <div className="w-8 h-8 border-2 border-white/[0.08] border-t-[var(--color-accent)] rounded-full animate-spin" />
+              <span className="text-[13px] text-white/55">Generating…</span>
+            </div>
+          ) : (
             <ExamplePrompts items={IMAGE_EXAMPLES} onPick={setPrompt} />
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
-            {images.map((img, i) => (
-              <div key={i} className="relative group">
-                <img
-                  src={toImageSrc(img)}
-                  alt={`Generated ${i + 1}`}
-                  className="w-full rounded-lg cursor-pointer border border-white/[0.04] hover:border-white/[0.1] transition-all duration-200"
-                  onClick={() => setSelectedImage(img)}
-                />
-                <button
-                  onClick={(e) => { e.stopPropagation(); downloadImage(img, i) }}
-                  className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-md text-white/40 hover:text-white opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
-                  title="Download"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+          {mutation.isPending && Array.from({ length: variants }).map((_, i) => (
+            <div key={`skel-${i}`} className="aspect-square rounded-xl skeleton" />
+          ))}
+          {images.map((img, i) => (
+            <div key={i} className="relative group">
+              <img
+                src={toImageSrc(img)}
+                alt={`Generated ${i + 1}`}
+                className="w-full rounded-xl cursor-pointer border border-white/[0.05] hover:border-white/[0.18] transition-all duration-200"
+                onClick={() => setSelectedImage(img)}
+              />
+              <button
+                onClick={(e) => { e.stopPropagation(); downloadImage(img, i) }}
+                aria-label="Download"
+                className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/85 rounded-lg text-white/70 hover:text-white opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+                title="Download"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   )
+
+  return <GenerationView controls={controls} output={output} />
 }

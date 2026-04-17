@@ -21,6 +21,33 @@ export interface VideoConstraints {
   video_input: boolean
 }
 
+export interface ModelCapabilities {
+  optimizedForCode?: boolean
+  quantization?: string
+  supportsAudioInput?: boolean
+  supportsFunctionCalling?: boolean
+  supportsLogProbs?: boolean
+  supportsMultipleImages?: boolean
+  supportsReasoning?: boolean
+  supportsReasoningEffort?: boolean
+  supportsResponseSchema?: boolean
+  supportsTeeAttestation?: boolean
+  supportsE2EE?: boolean
+  supportsVideoInput?: boolean
+  supportsVision?: boolean
+  supportsWebSearch?: boolean
+  supportsXSearch?: boolean
+}
+
+export type ModelTrait =
+  | 'default'
+  | 'most_intelligent'
+  | 'most_uncensored'
+  | 'function_calling_default'
+  | 'default_reasoning'
+  | 'default_code'
+  | 'default_vision'
+
 export interface VeniceModel {
   id: string
   object: string
@@ -28,12 +55,18 @@ export interface VeniceModel {
   owned_by: string
   model_spec?: {
     availableContextTokens?: number
-    capabilities?: Record<string, unknown>
-    traits?: string[]
+    maxCompletionTokens?: number
+    capabilities?: ModelCapabilities
+    traits?: ModelTrait[]
     offline?: boolean
     name?: string
+    description?: string
     constraints?: VideoConstraints | ImageConstraints
     model_sets?: string[]
+    pricing?: {
+      input?: { usd?: number }
+      output?: { usd?: number }
+    }
   }
 }
 

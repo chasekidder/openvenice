@@ -6,6 +6,7 @@ import { useTTS, useTranscription } from '../../hooks/use-audio'
 import { useBlobUrl } from '../../hooks/use-blob-url'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
+import { GenerationView } from '../ui/generation-view'
 import { cn } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
 
@@ -105,60 +106,58 @@ export function AudioView() {
     )
   }
 
-  return (
-    <div className="flex h-full">
-      <div className="w-96 border-r border-white/[0.06] p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
-        <div className="flex gap-px bg-white/[0.02] rounded-lg p-0.5 border border-white/[0.04]">
-          {(['tts', 'transcribe'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={cn(
-              'flex-1 px-3 py-2.5 text-[15px] font-medium rounded-[7px] transition-all duration-150',
-              tab === t ? 'bg-white text-black' : 'text-white/25 hover:text-white/45',
-            )}>
-              {t === 'tts' ? 'Text to Speech' : 'Transcription'}
-            </button>
-          ))}
-        </div>
-
-        {tab === 'tts' ? (
-          <>
-            <div>
-              <Label>Text</Label>
-              <TextArea value={text} onChange={setText} placeholder="Enter text to convert to speech..." rows={5} />
-              <span className="text-[16px] text-white/10 mt-1 block">{text.length}/4096</span>
-            </div>
-            <div><Label>Voice</Label><Select value={voice} onChange={setVoice} options={voiceOptions} searchable /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Format</Label><Select value={format} onChange={setFormat} options={formatOptions} /></div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <Label>Speed</Label>
-                  <span className="text-[16px] text-white/30 font-mono">{speed}x</span>
-                </div>
-                <input type="range" min={0.25} max={4} step={0.25} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="w-full" />
-              </div>
-            </div>
-            <PrimaryButton onClick={handleTTS} disabled={!text.trim() || !apiKey} loading={tts.isPending}>Generate Speech</PrimaryButton>
-            {tts.error && <ErrorText>{tts.error.message}</ErrorText>}
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="w-full border border-dashed border-white/[0.08] hover:border-white/[0.15] rounded-lg p-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/30 focus-visible:outline-offset-2"
-            >
-              <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-              <p className="text-[15px] text-white/40">{file ? file.name : 'Click to select audio file'}</p>
-            </button>
-            <PrimaryButton onClick={() => { if (file) transcription.mutate(file, { onSuccess: (d) => setTranscript(d.text), onError: (err) => toast.fromError(err, 'Transcription failed') }) }} disabled={!file || !apiKey} loading={transcription.isPending}>
-              Transcribe
-            </PrimaryButton>
-            {transcription.error && <ErrorText>{transcription.error.message}</ErrorText>}
-          </>
-        )}
+  const controls = (
+    <>
+      <div className="flex gap-px bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.05]">
+        {(['tts', 'transcribe'] as const).map((t) => (
+          <button key={t} onClick={() => setTab(t)} className={cn(
+            'flex-1 px-3 py-2 text-[13px] font-medium rounded-[7px] transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]',
+            tab === t ? 'bg-white text-black shadow-sm' : 'text-white/55 hover:text-white/85',
+          )}>
+            {t === 'tts' ? 'Text to Speech' : 'Transcribe'}
+          </button>
+        ))}
       </div>
 
-      <div className="flex-1 p-6 overflow-y-auto flex flex-col min-w-0">
+      {tab === 'tts' ? (
+        <>
+          <div>
+            <Label hint={`${text.length}/4096`}>Text</Label>
+            <TextArea value={text} onChange={setText} placeholder="Enter text to convert to speech…" rows={5} />
+          </div>
+          <div><Label>Voice</Label><Select value={voice} onChange={setVoice} options={voiceOptions} searchable /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Format</Label><Select value={format} onChange={setFormat} options={formatOptions} /></div>
+            <div>
+              <Label hint={`${speed}×`}>Speed</Label>
+              <input type="range" min={0.25} max={4} step={0.25} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="w-full" />
+            </div>
+          </div>
+          <PrimaryButton onClick={handleTTS} disabled={!text.trim() || !apiKey} loading={tts.isPending} size="lg">Generate Speech</PrimaryButton>
+          {tts.error && <ErrorText>{tts.error.message}</ErrorText>}
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="w-full border border-dashed border-white/[0.1] hover:border-white/[0.22] hover:bg-white/[0.02] rounded-xl p-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
+          >
+            <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="mx-auto mb-2 text-white/40"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
+            <p className="text-[14px] text-white/65">{file ? file.name : 'Click to select audio file'}</p>
+          </button>
+          <PrimaryButton onClick={() => { if (file) transcription.mutate(file, { onSuccess: (d) => setTranscript(d.text), onError: (err) => toast.fromError(err, 'Transcription failed') }) }} disabled={!file || !apiKey} loading={transcription.isPending} size="lg">
+            Transcribe
+          </PrimaryButton>
+          {transcription.error && <ErrorText>{transcription.error.message}</ErrorText>}
+        </>
+      )}
+    </>
+  )
+
+  const output = (
+    <div className="flex flex-col min-h-full">
         {tab === 'tts' ? (
           audioUrl ? (
             <div className="flex flex-col gap-4 animate-fade-in">
@@ -197,7 +196,7 @@ export function AudioView() {
           transcript ? (
             <div className="flex flex-col gap-3 animate-fade-in">
               <Label>Transcript</Label>
-              <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-6 text-[16px] text-white/60 whitespace-pre-wrap leading-relaxed">
+              <div className="bg-[#111114] border border-white/[0.06] rounded-xl p-6 text-[15px] text-white/85 whitespace-pre-wrap leading-relaxed">
                 {transcript}
               </div>
             </div>
@@ -205,7 +204,8 @@ export function AudioView() {
             <EmptyState>Transcript appears here</EmptyState>
           )
         )}
-      </div>
     </div>
   )
+
+  return <GenerationView controls={controls} output={output} />
 }

@@ -12,6 +12,8 @@ interface SettingsState {
   toggleSidebar: () => void
   selectedModels: Record<string, string>
   setSelectedModel: (tab: string, modelId: string) => void
+  playgroundAgentModel: string
+  setPlaygroundAgentModel: (modelId: string) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -25,6 +27,8 @@ export const useSettingsStore = create<SettingsState>()(
       selectedModels: {},
       setSelectedModel: (tab, modelId) =>
         set((s) => ({ selectedModels: { ...s.selectedModels, [tab]: modelId } })),
+      playgroundAgentModel: '',
+      setPlaygroundAgentModel: (modelId) => set({ playgroundAgentModel: modelId }),
     }),
     {
       name: 'venice-settings',

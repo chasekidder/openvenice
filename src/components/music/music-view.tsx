@@ -4,6 +4,7 @@ import { useModels } from '../../hooks/use-models'
 import { useAuthStore } from '../../stores/auth-store'
 import { useMusic } from '../../hooks/use-music'
 import { Label, TextArea, PrimaryButton, ErrorText } from '../ui/shared'
+import { GenerationView } from '../ui/generation-view'
 import { cn } from '../../lib/utils'
 import type { MusicQueueRequest } from '../../types/venice'
 
@@ -56,73 +57,66 @@ export function MusicView() {
     queue(req)
   }
 
-  return (
-    <div className="flex h-full">
-      <div className="w-96 border-r border-white/[0.06] p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
-        <div>
-          <Label>Prompt</Label>
-          <TextArea value={prompt} onChange={setPrompt} placeholder="An upbeat electronic track with a driving bassline and ethereal synths..." rows={4} />
-        </div>
-
-        {config.lyrics && (
-          <div>
-            <Label>Lyrics</Label>
-            <TextArea value={lyrics} onChange={setLyrics} placeholder="Optional lyrics or vocal direction..." rows={3} />
-          </div>
-        )}
-
-        {config.duration && (
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <Label>Duration</Label>
-              <span className="text-[16px] text-white/30 font-mono">{duration}s</span>
-            </div>
-            <input type="range" min={5} max={120} step={5} value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full" />
-          </div>
-        )}
-
-        {config.instrumental && (
-          <div className="flex items-center justify-between">
-            <Label>Instrumental only</Label>
-            <button
-              onClick={() => setInstrumental(!instrumental)}
-              className={cn(
-                'w-8 h-[18px] rounded-full transition-colors relative',
-                instrumental ? 'bg-white' : 'bg-white/[0.08]',
-              )}
-            >
-              <div className={cn(
-                'absolute top-[2px] w-[14px] h-[14px] rounded-full transition-all',
-                instrumental ? 'left-[16px] bg-black' : 'left-[2px] bg-white/30',
-              )} />
-            </button>
-          </div>
-        )}
-
-        {/* Model capabilities */}
-        <div className="flex flex-wrap gap-1">
-          {config.lyrics && <Tag>Lyrics</Tag>}
-          {config.instrumental && <Tag>Instrumental</Tag>}
-          {config.voice && <Tag>Voice</Tag>}
-          {config.duration && <Tag>Custom Duration</Tag>}
-        </div>
-
-        <PrimaryButton
-          onClick={handleGenerate}
-          disabled={!prompt.trim() || !apiKey || isQueueing || isProcessing}
-          loading={isQueueing || isProcessing}
-        >
-          {isProcessing ? (status === 'queued' ? 'Queued...' : 'Generating...') : 'Generate Music'}
-        </PrimaryButton>
-        {error && (
-          <div className="flex items-center justify-between">
-            <ErrorText>{error}</ErrorText>
-            <button onClick={reset} className="text-[14px] text-white/20 hover:text-white/40 underline underline-offset-2 shrink-0 ml-2 transition-colors">Reset</button>
-          </div>
-        )}
+  const controls = (
+    <>
+      <div>
+        <Label>Prompt</Label>
+        <TextArea value={prompt} onChange={setPrompt} placeholder="An upbeat electronic track with a driving bassline and ethereal synths…" rows={4} />
       </div>
 
-      <div className="flex-1 p-6 overflow-y-auto flex flex-col min-w-0">
+      {config.lyrics && (
+        <div>
+          <Label>Lyrics</Label>
+          <TextArea value={lyrics} onChange={setLyrics} placeholder="Optional lyrics or vocal direction…" rows={3} />
+        </div>
+      )}
+
+      {config.duration && (
+        <div>
+          <Label hint={`${duration}s`}>Duration</Label>
+          <input type="range" min={5} max={120} step={5} value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full" />
+        </div>
+      )}
+
+      {config.instrumental && (
+        <div className="flex items-center justify-between">
+          <Label>Instrumental only</Label>
+          <button
+            onClick={() => setInstrumental(!instrumental)}
+            aria-pressed={instrumental}
+            className={cn('w-9 h-5 rounded-full transition-colors relative', instrumental ? 'bg-[var(--color-accent)]' : 'bg-white/[0.1]')}
+          >
+            <div className={cn('absolute top-[2px] w-[16px] h-[16px] rounded-full bg-white transition-all', instrumental ? 'left-[20px]' : 'left-[2px]')} />
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-1">
+        {config.lyrics && <Tag>Lyrics</Tag>}
+        {config.instrumental && <Tag>Instrumental</Tag>}
+        {config.voice && <Tag>Voice</Tag>}
+        {config.duration && <Tag>Custom Duration</Tag>}
+      </div>
+
+      <PrimaryButton
+        onClick={handleGenerate}
+        disabled={!prompt.trim() || !apiKey || isQueueing || isProcessing}
+        loading={isQueueing || isProcessing}
+        size="lg"
+      >
+        {isProcessing ? (status === 'queued' ? 'Queued…' : 'Generating…') : 'Generate Music'}
+      </PrimaryButton>
+      {error && (
+        <div className="flex items-center justify-between gap-2">
+          <ErrorText>{error}</ErrorText>
+          <button onClick={reset} className="text-[13px] text-white/55 hover:text-white underline underline-offset-2 shrink-0 transition-colors">Reset</button>
+        </div>
+      )}
+    </>
+  )
+
+  const output = (
+    <div className="flex flex-col h-full">
         {audioUrl ? (
           <div className="animate-fade-in flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -178,9 +172,10 @@ export function MusicView() {
             )}
           </div>
         )}
-      </div>
     </div>
   )
+
+  return <GenerationView controls={controls} output={output} />
 }
 
 const MUSIC_EXAMPLES = [

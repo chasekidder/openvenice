@@ -6,8 +6,10 @@ import { validateWorkflow } from '../../lib/workflow-validator'
 import { executeWorkflow } from '../../lib/workflow-engine'
 import { PlaygroundChat } from './playground-chat'
 import { WorkflowPreview } from './workflow-preview'
+import { AgentModelPicker } from './agent-model-picker'
 import { cn } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
+import { DEFAULT_AGENT_MODEL } from '../../lib/playground-agent'
 
 export function PlaygroundView() {
   const draft = usePlaygroundStore((s) => s.draft)
@@ -22,6 +24,9 @@ export function PlaygroundView() {
   const updateWorkflow = useWorkflowStore((s) => s.updateWorkflow)
   const setActiveWorkflow = useWorkflowStore((s) => s.setActiveWorkflow)
   const setActiveTab = useSettingsStore((s) => s.setActiveTab)
+  const playgroundAgentModel = useSettingsStore((s) => s.playgroundAgentModel)
+  const setPlaygroundAgentModel = useSettingsStore((s) => s.setPlaygroundAgentModel)
+  const currentAgentModel = playgroundAgentModel || DEFAULT_AGENT_MODEL
   const [saveToast, setSaveToast] = useState<string | null>(null)
   const linkedWorkflow = workflows.find((w) => w.id === linkedWorkflowId)
 
@@ -107,18 +112,21 @@ export function PlaygroundView() {
   return (
     <div className="flex h-full">
       <div className="w-[420px] shrink-0 border-r border-white/[0.06] flex flex-col">
-        <div className="flex items-center justify-between px-4 h-11 border-b border-white/[0.06] bg-[#0a0a0a] shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-medium text-white/60">Playground</span>
-            <span className="text-[11px] px-1.5 py-0.5 rounded bg-white/[0.05] text-white/30 uppercase tracking-wider">Agent</span>
+        <div className="flex items-center justify-between gap-2 px-3 h-11 border-b border-white/[0.06] bg-[#0a0a0a] shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[14px] font-medium text-white/65 shrink-0">Playground</span>
+            <span className="text-[11px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/45 uppercase tracking-wider shrink-0">Agent</span>
           </div>
-          <button
-            onClick={handleReset}
-            className="text-[12px] text-white/20 hover:text-white/50 transition-colors"
-            title="Clear conversation"
-          >
-            Clear
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0 min-w-0">
+            <AgentModelPicker value={currentAgentModel} onChange={setPlaygroundAgentModel} />
+            <button
+              onClick={handleReset}
+              className="text-[12px] text-white/45 hover:text-white/80 transition-colors px-1.5 py-1 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
+              title="Clear conversation"
+            >
+              Clear
+            </button>
+          </div>
         </div>
         <div className="flex-1 min-h-0">
           <PlaygroundChat />

@@ -4,6 +4,7 @@ import { useModels } from '../../hooks/use-models'
 import { useAuthStore } from '../../stores/auth-store'
 import { useEmbeddings } from '../../hooks/use-embeddings'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
+import { GenerationView } from '../ui/generation-view'
 
 const PREVIEW_COUNT = 100
 
@@ -26,17 +27,18 @@ export function EmbeddingsView() {
     if (embedding) navigator.clipboard.writeText(JSON.stringify(embedding))
   }
 
-  return (
-    <div className="flex h-full">
-      <div className="w-96 border-r border-white/[0.06] p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
-        <div><Label>Input text</Label><TextArea value={input} onChange={setInput} placeholder="Enter text to embed..." rows={6} /></div>
-        <PrimaryButton onClick={() => { mutation.mutate({ model, input: input.trim() }); setExpanded(false) }} disabled={!input.trim() || !apiKey} loading={mutation.isPending}>
-          Generate Embeddings
-        </PrimaryButton>
-        {mutation.error && <ErrorText>{mutation.error.message}</ErrorText>}
-      </div>
+  const controls = (
+    <>
+      <div><Label>Input text</Label><TextArea value={input} onChange={setInput} placeholder="Enter text to embed…" rows={6} /></div>
+      <PrimaryButton onClick={() => { mutation.mutate({ model, input: input.trim() }); setExpanded(false) }} disabled={!input.trim() || !apiKey} loading={mutation.isPending} size="lg">
+        Generate Embeddings
+      </PrimaryButton>
+      {mutation.error && <ErrorText>{mutation.error.message}</ErrorText>}
+    </>
+  )
 
-      <div className="flex-1 p-6 overflow-y-auto flex flex-col min-w-0">
+  const output = (
+    <div className="flex flex-col h-full">
         {!data && !input ? (
           <div className="flex items-center justify-center h-full">
             <div className="max-w-md w-full flex flex-col gap-2">
@@ -93,9 +95,10 @@ export function EmbeddingsView() {
         ) : (
           <EmptyState>Embedding vectors appear here</EmptyState>
         )}
-      </div>
     </div>
   )
+
+  return <GenerationView controls={controls} output={output} />
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

@@ -101,17 +101,17 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
   if (isUser) {
     return (
       <div className="flex justify-end" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
-        <div className="flex items-end gap-1 max-w-[75%]">
+        <div className="flex items-end gap-1.5 max-w-[78%]">
           {actions}
-          <div className="bg-white/[0.05] rounded-2xl rounded-br-sm px-4 py-2.5">
+          <div className="bg-white/[0.07] border border-white/[0.05] rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
             {images.length > 0 && (
               <div className="flex gap-1.5 mb-2">
                 {images.map((img, i) => (
-                  <img key={i} src={img} alt={`Attachment ${i + 1}`} className="h-20 rounded-lg border border-white/[0.05]" />
+                  <img key={i} src={img} alt={`Attachment ${i + 1}`} className="h-24 rounded-lg border border-white/[0.06]" />
                 ))}
               </div>
             )}
-            <div className="text-white/80 text-[17px] leading-relaxed whitespace-pre-wrap break-words">
+            <div className="text-white/95 text-[15.5px] leading-relaxed whitespace-pre-wrap break-words">
               {content}
             </div>
           </div>
@@ -121,27 +121,19 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
   }
 
   return (
-    <div className="flex gap-2.5" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
-      <div className="w-7 h-7 rounded bg-white/90 flex items-center justify-center shrink-0 mt-0.5">
-        <svg viewBox="0 0 32 32" width="12" height="12" fill="none">
-          <g fill="#0a0a0a">
+    <div className="flex gap-3" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
+      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white/95 to-white/75 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+        <svg viewBox="0 0 32 32" width="14" height="14" fill="none">
+          <g fill="#0a0a0c">
             <rect x="6.2" y="7.5" width="1.6" height="18" rx="0.8" transform="rotate(-42 6.2 7.5)" />
             <rect x="24.2" y="6.3" width="1.6" height="18" rx="0.8" transform="rotate(42 24.2 6.3)" />
             <polygon points="7.2,8.8 3.8,7.2 4.5,5.5 8.5,7.2" />
             <polygon points="24.8,8.8 28.2,7.2 27.5,5.5 23.5,7.2" />
             <rect x="14.3" y="14.3" width="3.4" height="3.4" rx="0.4" transform="rotate(45 16 16)" />
             <circle cx="9.2" cy="24.5" r="4" />
-            <circle cx="9.2" cy="24.5" r="1.7" fill="white" />
-            <circle cx="9.2" cy="22.9" r="0.9" fill="white" />
-            <circle cx="9.2" cy="26.1" r="0.9" fill="white" />
-            <circle cx="7.6" cy="24.5" r="0.9" fill="white" />
-            <circle cx="10.8" cy="24.5" r="0.9" fill="white" />
+            <circle cx="9.2" cy="24.5" r="1.7" fill="#fff" />
             <circle cx="22.8" cy="24.5" r="4" />
-            <circle cx="22.8" cy="24.5" r="1.7" fill="white" />
-            <circle cx="22.8" cy="22.9" r="0.9" fill="white" />
-            <circle cx="22.8" cy="26.1" r="0.9" fill="white" />
-            <circle cx="21.2" cy="24.5" r="0.9" fill="white" />
-            <circle cx="24.4" cy="24.5" r="0.9" fill="white" />
+            <circle cx="22.8" cy="24.5" r="1.7" fill="#fff" />
             <path d="M16 5.5L12.5 8.5V12.5L16 10.5L19.5 12.5V8.5Z" />
           </g>
         </svg>
@@ -169,7 +161,7 @@ export function MessageBubble({ message, onCopy, onDelete, onRegenerate }: Messa
         )}
 
         {content ? (
-          <div className="prose-venice text-[17px] leading-relaxed text-white/60">
+          <div className="prose-venice text-[15.5px] leading-relaxed text-white/85">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               urlTransform={safeUrlTransform}

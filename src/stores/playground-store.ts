@@ -5,11 +5,19 @@ import type { VeniceNodeData, NodeResult } from './workflow-store'
 import { applyPatches, type WorkflowPatch, type PatchResult } from '../lib/workflow-mutations'
 import { createSafeStorage } from '../lib/safe-storage'
 
+export interface PlaygroundActivity {
+  tool: string
+  /** Short human-readable summary, e.g. "added chat node 'research'" */
+  summary: string
+  ok: boolean
+}
+
 export interface PlaygroundMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
   patches?: WorkflowPatch[]
+  activity?: PlaygroundActivity[]
   error?: string
   pending?: boolean
 }
