@@ -220,7 +220,7 @@ Workflows must terminate at an output node (or the user won't see results). Mult
 
 // ---- Runner ---------------------------------------------------------------
 
-const MAX_ITERATIONS = 8 // generous; each iteration may include many tool calls
+const MAX_ITERATIONS = 16 // some models batch poorly (one tool call per turn) and need headroom
 
 export interface RunStep {
   tool: string
@@ -380,9 +380,24 @@ function handleTool(name: string, args: Record<string, unknown>, opts: RunOption
         }
 
         // Strip junk keys to keep the store clean.
-        const allowed = new Set(['model', 'prompt', ...NODE_SCHEMAS[node_type].params.map((p) => p.name)])
+        const schema = NODE_SCHEMAS[node_type]
+        const allowed = new Set(['model', 'prompt', ...schema.params.map((p) => p.name)])
         const params: Record<string, unknown> = {}
         for (const [k, v] of Object.entries(rawParams)) if (allowed.has(k)) params[k] = v
+
+        // Validate enum-typed params and coerce common mistakes (boolean true → 'on', etc.).
+        for (const p of schema.params) {
+          if (p.enumValues && params[p.name] !== undefined) {
+            const v = params[p.name]
+            if (typeof v === 'boolean') {
+              params[p.name] = v ? (p.enumValues.includes('on') ? 'on' : p.enumValues[0]) : (p.enumValues.includes('off') ? 'off' : '')
+              continue
+            }
+            if (typeof v !== 'string' || !p.enumValues.includes(v)) {
+              return { error: `Invalid value for ${node_type}.${p.name}: ${JSON.stringify(v)}. Must be one of [${p.enumValues.filter(Boolean).join(', ')}].` }
+            }
+          }
+        }
 
         const r = opts.applyPatch({ op: 'add_node', nodeType: node_type, id, params: params as Partial<VeniceNodeData> })
         if ('error' in r) return { error: r.error }
