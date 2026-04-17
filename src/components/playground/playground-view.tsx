@@ -7,6 +7,7 @@ import { executeWorkflow } from '../../lib/workflow-engine'
 import { PlaygroundChat } from './playground-chat'
 import { WorkflowPreview } from './workflow-preview'
 import { cn } from '../../lib/utils'
+import { toast } from '../../stores/toast-store'
 
 export function PlaygroundView() {
   const draft = usePlaygroundStore((s) => s.draft)
@@ -37,7 +38,12 @@ export function PlaygroundView() {
     for (const n of draft.nodes) initial[n.id] = { nodeId: n.id, status: 'pending', output: undefined, error: undefined }
     store.setRunResults(initial)
     try {
-      await executeWorkflow(draft.nodes, draft.edges, (nodeId, result) => store.updateRunNode(nodeId, result))
+      await executeWorkflow(draft.nodes, draft.edges, {
+        onUpdate: (nodeId, result) => store.updateRunNode(nodeId, result),
+      })
+      toast.success('Workflow completed')
+    } catch (err) {
+      toast.fromError(err, 'Workflow failed')
     } finally {
       usePlaygroundStore.getState().setIsRunning(false)
     }

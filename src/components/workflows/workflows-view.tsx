@@ -20,6 +20,7 @@ import { WorkflowNode } from './workflow-node'
 import { executeWorkflow } from '../../lib/workflow-engine'
 import { generateId } from '../../lib/utils'
 import { cn } from '../../lib/utils'
+import { toast } from '../../stores/toast-store'
 
 const nodeTypes = { venice: WorkflowNode }
 
@@ -241,7 +242,10 @@ function WorkflowCanvas() {
     useWorkflowStore.getState().setRunResults(initial)
 
     try {
-      await executeWorkflow(currentNodes, currentEdges, updateNodeResult)
+      await executeWorkflow(currentNodes, currentEdges, { onUpdate: updateNodeResult })
+      toast.success('Workflow completed')
+    } catch (err) {
+      toast.fromError(err, 'Workflow failed')
     } finally {
       setIsRunning(false)
     }
