@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   build-and-sign:
-    runs-on: [self-hosted, linux, podman]
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write

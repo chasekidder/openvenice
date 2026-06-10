@@ -8,12 +8,9 @@
 
 The public key (`cosign.pub` at repo root) is used for verification in CI and by anyone verifying the signed image.
 
-## Self-Hosted Runner
+## Runner
 
-The workflow targets a runner with labels `[self-hosted, linux, podman]`. The runner must have:
-- `podman` installed and available
-- `buildah` installed
-- `cosign` (installed by the workflow via `sigstore/cosign-installer`)
+The workflow runs on `ubuntu-24.04` (GitHub-hosted). Buildah and podman are provided by the `redhat-actions/buildah-build` action; cosign is installed by `sigstore/cosign-installer`.
 
 ## Image Signing
 
