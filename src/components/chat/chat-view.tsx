@@ -61,12 +61,13 @@ export function ChatView() {
                     <button
                       key={p}
                       type="button"
-onClick={() => send(p, model, undefined, advancedParams)}
-                    className="text-left px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all text-[14px] text-white/65 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
-                  >
-                    {p}
-                  </button>
-                ))}
+                      onClick={() => send(p, model, undefined, advancedParams)}
+                      className="text-left px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all text-[14px] text-white/65 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             <VeniceParams />
