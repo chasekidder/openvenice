@@ -11,6 +11,8 @@ RUN npm run build
 
 # --- Runtime stage: tiny static server ---
 FROM nginx:alpine
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 COPY --from=builder /app/dist /usr/share/nginx/html
 # SPA fallback — every unknown path serves index.html
 RUN printf '%s\n' \
@@ -23,4 +25,5 @@ RUN printf '%s\n' \
   '  location ~* \.(?:js|css|svg|woff2?)$ { expires 1y; add_header Cache-Control "public, immutable"; }' \
   '}' > /etc/nginx/conf.d/default.conf
 EXPOSE 80
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

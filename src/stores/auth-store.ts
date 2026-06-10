@@ -67,6 +67,12 @@ async function decrypt(blob: EncryptedBlob, passphrase: string): Promise<string>
   return new TextDecoder().decode(pt)
 }
 
+declare global {
+  interface Window {
+    __RUNTIME_CONFIG__?: { VENICE_API_KEY?: string }
+  }
+}
+
 const initialKey = (() => {
   try {
     const session = sessionStorage.getItem(SESSION_KEY)
@@ -83,6 +89,8 @@ const initialKey = (() => {
         localStorage.removeItem(SESSION_KEY)
       }
     }
+    const runtime = window.__RUNTIME_CONFIG__?.VENICE_API_KEY
+    if (runtime) return runtime
     return null
   } catch {
     return null
