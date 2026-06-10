@@ -3,8 +3,10 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useAuthStore } from '../../stores/auth-store'
 import { useEmbeddings } from '../../hooks/use-embeddings'
+import { useRequestInspector } from '../../hooks/use-request-inspector'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
+import { AdvancedControls } from '../advanced-controls/advanced-controls'
 
 const PREVIEW_COUNT = 100
 
@@ -16,6 +18,8 @@ export function EmbeddingsView() {
 
   const [input, setInput] = useState('')
   const [expanded, setExpanded] = useState(false)
+  const [advancedParams, setAdvancedParams] = useState<Record<string, unknown>>({})
+  const { capture } = useRequestInspector()
   const mutation = useEmbeddings()
   const data = mutation.data
 
@@ -30,7 +34,8 @@ export function EmbeddingsView() {
   const controls = (
     <>
       <div><Label>Input text</Label><TextArea value={input} onChange={setInput} placeholder="Enter text to embed…" rows={6} /></div>
-      <PrimaryButton onClick={() => { mutation.mutate({ model, input: input.trim() }); setExpanded(false) }} disabled={!input.trim() || !apiKey} loading={mutation.isPending} size="lg">
+      <AdvancedControls endpoint="/embeddings" primaryFields={['model', 'input', 'encoding_format']} onChange={setAdvancedParams} />
+      <PrimaryButton onClick={() => { const body = { model, input: input.trim(), ...advancedParams }; capture('/embeddings', 'POST', body); mutation.mutate(body as Parameters<typeof mutation.mutate>[0]); setExpanded(false) }} disabled={!input.trim() || !apiKey} loading={mutation.isPending} size="lg">
         Generate Embeddings
       </PrimaryButton>
       {mutation.error && <ErrorText>{mutation.error.message}</ErrorText>}

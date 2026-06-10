@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useChatStore } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/auth-store'
 import { MessageBubble } from './message-bubble'
 import { ChatInput } from './chat-input'
 import { VeniceParams } from './venice-params'
+import { AdvancedControls } from '../advanced-controls/advanced-controls'
 import { VeniceLogo } from '../ui/logo'
 
 const STARTER_PROMPTS = [
@@ -27,6 +28,7 @@ export function ChatView() {
   const { data: models } = useModels('text')
   const model = selectedModel || models?.[0]?.id || 'llama-3.3-70b'
   const { send, stop, regenerate, isStreaming } = useChat()
+  const [advancedParams, setAdvancedParams] = useState<Record<string, unknown>>({})
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const messageCount = conversation?.messages.length ?? 0
@@ -59,21 +61,22 @@ export function ChatView() {
                     <button
                       key={p}
                       type="button"
-                      onClick={() => send(p, model)}
-                      className="text-left px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all text-[14px] text-white/65 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
+onClick={() => send(p, model, undefined, advancedParams)}
+                    className="text-left px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all text-[14px] text-white/65 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white/40"
+                  >
+                    {p}
+                  </button>
+                ))}
               </div>
             )}
             <VeniceParams />
+            <AdvancedControls endpoint="/chat/completions" primaryFields={['model', 'messages', 'stream', 'temperature', 'top_p', 'max_tokens', 'venice_parameters', 'frequency_penalty', 'presence_penalty', 'max_completion_tokens']} onChange={setAdvancedParams} />
           </div>
         ) : (
           <>
             <div className="border-b border-white/[0.04]">
               <VeniceParams />
+              <AdvancedControls endpoint="/chat/completions" primaryFields={['model', 'messages', 'stream', 'temperature', 'top_p', 'max_tokens', 'venice_parameters', 'frequency_penalty', 'presence_penalty', 'max_completion_tokens']} onChange={setAdvancedParams} />
             </div>
             <div className="w-full max-w-[960px] mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
               {conversation.messages.map((msg, i) => (
@@ -91,7 +94,7 @@ export function ChatView() {
           </>
         )}
       </div>
-      <ChatInput onSend={(msg, images) => send(msg, model, images)} onStop={stop} isStreaming={isStreaming} disabled={!apiKey} />
+      <ChatInput onSend={(msg, images) => send(msg, model, images, advancedParams)} onStop={stop} isStreaming={isStreaming} disabled={!apiKey} />
     </div>
   )
 }

@@ -3,8 +3,10 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useAuthStore } from '../../stores/auth-store'
 import { useMusic } from '../../hooks/use-music'
+import { useRequestInspector } from '../../hooks/use-request-inspector'
 import { Label, TextArea, PrimaryButton, ErrorText } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
+import { AdvancedControls } from '../advanced-controls/advanced-controls'
 import { cn } from '../../lib/utils'
 import type { MusicQueueRequest } from '../../types/venice'
 
@@ -41,8 +43,10 @@ export function MusicView() {
   const [lyrics, setLyrics] = useState('')
   const [duration, setDuration] = useState(30)
   const [instrumental, setInstrumental] = useState(false)
+  const [advancedParams, setAdvancedParams] = useState<Record<string, unknown>>({})
 
   const { queue, isQueueing, status, audioUrl, error, reset, cancel, elapsedMs } = useMusic()
+  const { capture } = useRequestInspector()
   const isProcessing = status === 'queued' || status === 'processing'
 
   const handleGenerate = () => {
@@ -54,6 +58,8 @@ export function MusicView() {
     if (config.lyrics && lyrics.trim()) req.lyrics_prompt = lyrics.trim()
     if (config.duration) req.duration_seconds = duration
     if (config.instrumental && instrumental) req.force_instrumental = true
+    Object.assign(req, advancedParams)
+    capture('/audio/queue', 'POST', req)
     queue(req)
   }
 
@@ -97,6 +103,8 @@ export function MusicView() {
         {config.voice && <Tag>Voice</Tag>}
         {config.duration && <Tag>Custom Duration</Tag>}
       </div>
+
+      <AdvancedControls endpoint="/audio/queue" primaryFields={['model', 'prompt', 'lyrics_prompt', 'duration_seconds', 'force_instrumental']} onChange={setAdvancedParams} />
 
       <PrimaryButton
         onClick={handleGenerate}

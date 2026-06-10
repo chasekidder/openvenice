@@ -4,9 +4,11 @@ import { useModels } from '../../hooks/use-models'
 import { useAuthStore } from '../../stores/auth-store'
 import { useTTS, useTranscription } from '../../hooks/use-audio'
 import { useBlobUrl } from '../../hooks/use-blob-url'
+import { useRequestInspector } from '../../hooks/use-request-inspector'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
+import { AdvancedControls } from '../advanced-controls/advanced-controls'
 import { cn } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
 
@@ -66,6 +68,8 @@ export function AudioView() {
 
   const tts = useTTS()
   const transcription = useTranscription()
+  const [advancedParams, setAdvancedParams] = useState<Record<string, unknown>>({})
+  const { capture } = useRequestInspector()
 
   const voiceOptions = VOICES.map((v) => {
     const prefix = v.slice(0, 2)
@@ -97,8 +101,10 @@ export function AudioView() {
 
   const handleTTS = () => {
     if (!text.trim()) return
+    const body = { model, input: text.trim(), voice, speed, response_format: format, ...advancedParams }
+    capture('/audio/speech', 'POST', body)
     tts.mutate(
-      { model, input: text.trim(), voice, speed, response_format: format as typeof FORMATS[number] },
+      body as Parameters<typeof tts.mutate>[0],
       {
         onSuccess: (blob) => setAudioBlob(blob),
         onError: (err) => toast.fromError(err, 'TTS failed'),
@@ -133,6 +139,7 @@ export function AudioView() {
               <input type="range" min={0.25} max={4} step={0.25} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="w-full" />
             </div>
           </div>
+          <AdvancedControls endpoint="/audio/speech" primaryFields={['model', 'input', 'voice', 'response_format', 'speed']} onChange={setAdvancedParams} />
           <PrimaryButton onClick={handleTTS} disabled={!text.trim() || !apiKey} loading={tts.isPending} size="lg">Generate Speech</PrimaryButton>
           {tts.error && <ErrorText>{tts.error.message}</ErrorText>}
         </>

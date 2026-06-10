@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react'
 import { venice } from '../lib/venice-client'
 import { parseSSEStream } from '../lib/stream'
 import { useChatStore } from '../stores/chat-store'
+import { useRequestInspectorStore } from '../stores/request-inspector-store'
 import type { ChatCompletionRequest, ChatMessage, ContentPart } from '../types/venice'
 
 export function useChat() {
@@ -22,7 +23,7 @@ export function useChat() {
   } = useChatStore()
 
   const streamResponse = useCallback(
-    async (convId: string, model: string, abortController: AbortController) => {
+    async (convId: string, model: string, abortController: AbortController, extraBody?: Record<string, unknown>) => {
       const conv = useChatStore.getState().conversations.find((c) => c.id === convId)
       if (!conv) return
 
@@ -42,7 +43,10 @@ export function useChat() {
         top_p: topP,
         max_tokens: maxTokens,
         venice_parameters: veniceParams,
+        ...extraBody,
       }
+
+      useRequestInspectorStore.getState().capture('/chat/completions', 'POST', body)
 
       const stream = await venice<ReadableStream<Uint8Array>>('/chat/completions', {
         method: 'POST',
@@ -65,7 +69,7 @@ export function useChat() {
   )
 
   const send = useCallback(
-    async (userMessage: string, model: string, imageAttachments?: string[]) => {
+    async (userMessage: string, model: string, imageAttachments?: string[], extraBody?: Record<string, unknown>) => {
       let convId = useChatStore.getState().activeConversationId
       if (!convId) {
         convId = createConversation(model)
@@ -91,7 +95,7 @@ export function useChat() {
       abortRef.current = abortController
 
       try {
-        await streamResponse(convId, model, abortController)
+        await streamResponse(convId, model, abortController, extraBody)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
         const message = err instanceof Error ? err.message : 'Unknown error'
@@ -105,7 +109,7 @@ export function useChat() {
   )
 
   const regenerate = useCallback(
-    async (model: string) => {
+    async (model: string, extraBody?: Record<string, unknown>) => {
       const convId = useChatStore.getState().activeConversationId
       if (!convId) return
       const conv = useChatStore.getState().conversations.find((c) => c.id === convId)
@@ -123,7 +127,7 @@ export function useChat() {
       abortRef.current = abortController
 
       try {
-        await streamResponse(convId, model, abortController)
+        await streamResponse(convId, model, abortController, extraBody)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
         const message = err instanceof Error ? err.message : 'Unknown error'

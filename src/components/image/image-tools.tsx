@@ -2,8 +2,10 @@ import { useState, useRef } from 'react'
 import { useAuthStore } from '../../stores/auth-store'
 import { useImageEdit, useImageUpscale, useBackgroundRemove } from '../../hooks/use-image-tools'
 import { useBlobUrl } from '../../hooks/use-blob-url'
+import { useRequestInspector } from '../../hooks/use-request-inspector'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
+import { AdvancedControls } from '../advanced-controls/advanced-controls'
 import { cn } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
 
@@ -43,6 +45,9 @@ export function ImageTools() {
   const editMutation = useImageEdit()
   const upscaleMutation = useImageUpscale()
   const bgRemoveMutation = useBackgroundRemove()
+  const [editAdvancedParams, setEditAdvancedParams] = useState<Record<string, unknown>>({})
+  const [upscaleAdvancedParams, setUpscaleAdvancedParams] = useState<Record<string, unknown>>({})
+  const { capture } = useRequestInspector()
 
   const handleFileSelect = (file: File) => {
     const reader = new FileReader()
@@ -57,19 +62,25 @@ export function ImageTools() {
   const handleProcess = () => {
     if (!imageData) return
     resetResult()
-    const opts = {
-      onSuccess: (blob: Blob) => setResultBlob(blob),
-      onError: (err: unknown) => toast.fromError(err, 'Image tool failed'),
-    }
     if (tool === 'edit') {
-      editMutation.mutate({ image: imageData, prompt: editPrompt.trim(), modelId: editModel }, opts)
+      const body = { image: imageData, prompt: editPrompt.trim(), modelId: editModel, ...editAdvancedParams }
+      capture('/image/edit', 'POST', body)
+      editMutation.mutate(body as Parameters<typeof editMutation.mutate>[0],
+        { onSuccess: (blob) => setResultBlob(blob), onError: (err) => toast.fromError(err, 'Edit failed') })
     } else if (tool === 'upscale') {
-      upscaleMutation.mutate(
-        { image: imageData, scale, enhance, enhanceCreativity: enhance ? enhanceCreativity : undefined, enhancePrompt: enhance && enhancePrompt.trim() ? enhancePrompt.trim() : undefined },
-        opts,
-      )
+      const body = {
+        image: imageData, scale, enhance,
+        enhanceCreativity: enhance ? enhanceCreativity : undefined,
+        enhancePrompt: enhance && enhancePrompt.trim() ? enhancePrompt.trim() : undefined,
+        ...upscaleAdvancedParams,
+      }
+      capture('/image/upscale', 'POST', body)
+      upscaleMutation.mutate(body as Parameters<typeof upscaleMutation.mutate>[0],
+        { onSuccess: (blob) => setResultBlob(blob), onError: (err) => toast.fromError(err, 'Upscale failed') })
     } else {
-      bgRemoveMutation.mutate(imageData, opts)
+      capture('/image/background-remove', 'POST', { image: imageData })
+      bgRemoveMutation.mutate(imageData,
+        { onSuccess: (blob) => setResultBlob(blob), onError: (err) => toast.fromError(err, 'BG removal failed') })
     }
   }
 
@@ -131,6 +142,7 @@ export function ImageTools() {
           <>
             <div><Label>Edit prompt</Label><TextArea value={editPrompt} onChange={setEditPrompt} placeholder="Change the background to a sunset beach..." rows={3} /></div>
             <div><Label>Model</Label><Select value={editModel} onChange={setEditModel} options={EDIT_MODELS} searchable /></div>
+            <AdvancedControls endpoint="/image/edit" primaryFields={['image', 'prompt', 'modelId']} onChange={setEditAdvancedParams} />
           </>
         )}
 
@@ -170,6 +182,7 @@ export function ImageTools() {
                 <div><Label>Enhance prompt</Label><TextArea value={enhancePrompt} onChange={setEnhancePrompt} placeholder="Make it more vibrant..." rows={2} /></div>
               </>
             )}
+            <AdvancedControls endpoint="/image/upscale" primaryFields={['image', 'scale', 'enhance', 'enhanceCreativity', 'enhancePrompt']} onChange={setUpscaleAdvancedParams} />
           </>
         )}
 

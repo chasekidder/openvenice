@@ -4,9 +4,12 @@ import { useModels } from '../../hooks/use-models'
 import { useStyles } from '../../hooks/use-styles'
 import { useImageGenerate } from '../../hooks/use-image'
 import { useAuthStore } from '../../stores/auth-store'
+import { useRequestInspector } from '../../hooks/use-request-inspector'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, ExamplePrompts } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
+import { AdvancedControls } from '../advanced-controls/advanced-controls'
+import { cn } from '../../lib/utils'
 import type { ImageConstraints } from '../../types/venice'
 
 const IMAGE_EXAMPLES = [
@@ -57,9 +60,12 @@ export function ImageView() {
   const [resolution, setResolution] = useState('')
   const [style, setStyle] = useState('')
   const [steps, setSteps] = useState(defaultSteps)
-  const [variants, setVariants] = useState(1)
+const [variants, setVariants] = useState(1)
   const [hideWatermark] = useState(true)
+  const [safeMode, setSafeMode] = useState(true)
   const [images, setImages] = useState<string[]>([])
+  const [advancedParams, setAdvancedParams] = useState<Record<string, unknown>>({})
+  const { capture } = useRequestInspector()
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   // Build aspect ratio options from model constraints
@@ -98,6 +104,7 @@ export function ImageView() {
       style_preset: style || undefined,
       variants,
       hide_watermark: hideWatermark,
+      safe_mode: safeMode,
       steps,
     }
 
@@ -113,6 +120,9 @@ export function ImageView() {
     if (hasResolutions && resolution) {
       req.resolution = resolution
     }
+
+    Object.assign(req, advancedParams)
+    capture('/image/generate', 'POST', req)
 
     mutation.mutate(
       req as unknown as Parameters<typeof mutation.mutate>[0],
@@ -145,6 +155,23 @@ export function ImageView() {
 
       <div><Label>Style</Label><Select value={style} onChange={setStyle} options={styleOptions} searchable placeholder="None" /></div>
 
+      <div className="flex items-center justify-between">
+        <Label>Safe mode</Label>
+        <button
+          onClick={() => setSafeMode(!safeMode)}
+          aria-pressed={safeMode}
+          className={cn(
+            'w-8 h-[18px] rounded-full transition-colors relative',
+            safeMode ? 'bg-white' : 'bg-white/[0.08]',
+          )}
+        >
+          <div className={cn(
+            'absolute top-[2px] w-[14px] h-[14px] rounded-full transition-all',
+            safeMode ? 'left-[16px] bg-black' : 'left-[2px] bg-white/30',
+          )} />
+        </button>
+      </div>
+
       <div>
         <Label hint={String(steps)}>Steps</Label>
         <input type="range" min={1} max={maxSteps} value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="w-full" />
@@ -153,6 +180,12 @@ export function ImageView() {
         <Label hint={String(variants)}>Variants</Label>
         <input type="range" min={1} max={4} value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="w-full" />
       </div>
+
+      <AdvancedControls
+        endpoint="/image/generate"
+        primaryFields={['prompt', 'negative_prompt', 'model', 'style_preset', 'variants', 'hide_watermark', 'steps', 'width', 'height', 'aspect_ratio', 'resolution', 'safe_mode', 'format']}
+        onChange={setAdvancedParams}
+      />
 
       <PrimaryButton onClick={handleGenerate} disabled={!prompt.trim() || !apiKey} loading={mutation.isPending} size="lg">
         {mutation.isPending ? 'Generating…' : 'Generate'}

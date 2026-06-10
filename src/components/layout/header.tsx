@@ -1,6 +1,7 @@
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useAuthStore } from '../../stores/auth-store'
+import { useRequestInspectorStore } from '../../stores/request-inspector-store'
 import { Select } from '../ui/select'
 import { StatusDot } from '../ui/shared'
 
@@ -49,7 +50,15 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const modelType = modelTypeMap[activeTab] || 'text'
   const { data: models } = useModels(hasOwnSelector ? undefined : modelType)
   const currentModel = hasOwnSelector ? '' : (selectedModels[activeTab] || models?.[0]?.id || '')
-  const modelOptions = hasOwnSelector ? [] : (models?.map((m) => ({ value: m.id, label: m.model_spec?.name || m.id })) ?? [])
+  const modelOptions = hasOwnSelector ? [] : (models?.map((m) => {
+    const pricing = m.model_spec?.pricing
+    let label = m.model_spec?.name || m.id
+    if (pricing?.input?.usd && pricing.input.usd > 0) {
+      const out = pricing.output?.usd && pricing.output.usd > 0 ? `/${pricing.output.usd.toFixed(2)}` : ''
+      label += ` ($${pricing.input.usd.toFixed(2)}${out}/M)`
+    }
+    return { value: m.id, label }
+  }) ?? [])
 
   return (
     <header className="flex items-center gap-3 h-14 px-3 border-b border-white/[0.05] bg-[#0a0a0c] shrink-0">
@@ -94,6 +103,20 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
 
       <div className="flex-1" />
 
+      <button
+        onClick={() => useRequestInspectorStore.getState().toggle()}
+        aria-label="Toggle request inspector"
+        className="flex items-center gap-2 text-[13px] px-2.5 py-1.5 rounded-md border border-white/[0.08] hover:border-white/[0.2] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+        title="Request Inspector"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-white/55">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
+      </button>
       <button
         onClick={onOpenApiKey}
         aria-label={apiKey ? 'API key connected, manage' : 'Connect API key'}

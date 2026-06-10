@@ -2,9 +2,11 @@ import { useState, useRef, useMemo } from 'react'
 import { useAuthStore } from '../../stores/auth-store'
 import { useVideoModels, type VideoModelGroup } from '../../hooks/use-models'
 import { useVideo } from '../../hooks/use-video'
+import { useRequestInspector } from '../../hooks/use-request-inspector'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
+import { AdvancedControls } from '../advanced-controls/advanced-controls'
 import { cn } from '../../lib/utils'
 import type { VideoQueueRequest, VideoConstraints } from '../../types/venice'
 
@@ -26,6 +28,8 @@ export function VideoView() {
 
   const { queue, isQueueing, status, videoUrl, error, reset, cancel, elapsedMs } = useVideo()
   const isProcessing = status === 'queued' || status === 'processing'
+  const [advancedParams, setAdvancedParams] = useState<Record<string, unknown>>({})
+  const { capture } = useRequestInspector()
 
   // Resolve current group and constraints
   const group: VideoModelGroup | undefined = useMemo(() => {
@@ -95,6 +99,8 @@ export function VideoView() {
     if (constraints?.audio && constraints.audio_configurable) {
       req.audio = audioEnabled
     }
+    Object.assign(req, advancedParams)
+    capture('/video/queue', 'POST', req)
     queue(req)
   }
 
@@ -239,6 +245,8 @@ export function VideoView() {
             </button>
           </div>
         )}
+
+        <AdvancedControls endpoint="/video/queue" primaryFields={['model', 'prompt', 'negative_prompt', 'duration', 'resolution', 'aspect_ratio', 'image_url', 'audio']} onChange={setAdvancedParams} />
 
         {/* Capability tags */}
         {tags.length > 0 && (
