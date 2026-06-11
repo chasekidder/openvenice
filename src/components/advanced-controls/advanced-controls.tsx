@@ -10,7 +10,7 @@ interface Props {
 
 export function AdvancedControls({ endpoint, primaryFields, onChange }: Props) {
   const [open, setOpen] = useState(false)
-  const { entries, isLoading } = useEndpointSchema(endpoint, primaryFields)
+  const { entries, isLoading, error } = useEndpointSchema(endpoint, primaryFields)
   const [values, setValues] = useState<Record<string, unknown>>({})
 
   const update = useCallback((name: string, value: unknown) => {
@@ -21,28 +21,38 @@ export function AdvancedControls({ endpoint, primaryFields, onChange }: Props) {
     })
   }, [onChange])
 
-  if (isLoading || entries.length === 0) return null
+  if (isLoading) return null
+  if (error) return null
 
   return (
     <div className="border-t border-white/[0.04] pt-3 mt-2">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-[13px] text-white/25 hover:text-white/50 transition-colors w-full"
+        className="flex items-center gap-2 text-[13px] text-white/35 hover:text-white/60 transition-colors w-full py-1"
       >
         <svg
-          className={cn('transition-transform duration-150', open && 'rotate-90')}
+          className={cn('transition-transform duration-150 shrink-0', open && 'rotate-90')}
           width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
         >
           <path d="M9 18l6-6-6-6" />
         </svg>
-        Advanced Parameters ({entries.length})
+        <span className="font-medium">Advanced</span>
+        {entries.length > 0 && (
+          <span className="text-white/20">({entries.length} parameter{entries.length !== 1 ? 's' : ''})</span>
+        )}
       </button>
 
-      {open && (
+      {open && entries.length > 0 && (
         <div className="mt-3 flex flex-col gap-3">
           {entries.map((entry) => (
             <Control key={entry.name} entry={entry} value={values[entry.name]} onChange={(v) => update(entry.name, v)} />
           ))}
+        </div>
+      )}
+
+      {open && entries.length === 0 && (
+        <div className="mt-2 text-[12px] text-white/20 italic">
+          No additional parameters detected for this endpoint.
         </div>
       )}
     </div>

@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/auth-store'
 import { useTTS, useTranscription } from '../../hooks/use-audio'
 import { useBlobUrl } from '../../hooks/use-blob-url'
 import { useRequestInspector } from '../../hooks/use-request-inspector'
+import { useTabState } from '../../hooks/use-tab-state'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
@@ -56,11 +57,11 @@ export function AudioView() {
   const { data: models } = useModels('tts')
   const model = selectedModel || models?.[0]?.id || 'tts-kokoro'
 
-  const [tab, setTab] = useState<'tts' | 'transcribe'>('tts')
-  const [text, setText] = useState('')
-  const [voice, setVoice] = useState('af_heart')
-  const [speed, setSpeed] = useState(1)
-  const [format, setFormat] = useState<string>('mp3')
+  const [tab, setTab] = useTabState<'tts' | 'transcribe'>('audio', 'tab', 'tts')
+  const [text, setText] = useTabState('audio', 'text', '')
+  const [voice, setVoice] = useTabState('audio', 'voice', 'af_heart')
+  const [speed, setSpeed] = useTabState('audio', 'speed', 1)
+  const [format, setFormat] = useTabState('audio', 'format', 'mp3')
   const [audioUrl, setAudioBlob] = useBlobUrl()
   const [file, setFile] = useState<File | null>(null)
   const [transcript, setTranscript] = useState('')
@@ -68,7 +69,7 @@ export function AudioView() {
 
   const tts = useTTS()
   const transcription = useTranscription()
-  const [advancedParams, setAdvancedParams] = useState<Record<string, unknown>>({})
+  const [advancedParams, setAdvancedParams] = useTabState<Record<string, unknown>>('audio', 'advancedParams', {})
   const { capture } = useRequestInspector()
 
   const voiceOptions = VOICES.map((v) => {

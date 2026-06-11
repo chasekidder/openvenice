@@ -5,6 +5,7 @@ import { useStyles } from '../../hooks/use-styles'
 import { useImageGenerate } from '../../hooks/use-image'
 import { useAuthStore } from '../../stores/auth-store'
 import { useRequestInspector } from '../../hooks/use-request-inspector'
+import { useTabState } from '../../hooks/use-tab-state'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, ExamplePrompts } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
@@ -53,18 +54,17 @@ export function ImageView() {
   const defaultSteps = constraints?.steps?.default || 20
   const promptLimit = constraints?.promptCharacterLimit || 4096
 
-  const [prompt, setPrompt] = useState('')
-  const [negativePrompt, setNegativePrompt] = useState('')
-  const [sizeIdx, setSizeIdx] = useState('2')
-  const [aspectRatio, setAspectRatio] = useState('')
-  const [resolution, setResolution] = useState('')
-  const [style, setStyle] = useState('')
-  const [steps, setSteps] = useState(defaultSteps)
-const [variants, setVariants] = useState(1)
-  const [hideWatermark] = useState(true)
-  const [safeMode, setSafeMode] = useState(true)
+  const [prompt, setPrompt] = useTabState('image', 'prompt', '')
+  const [negativePrompt, setNegativePrompt] = useTabState('image', 'negativePrompt', '')
+  const [sizeIdx, setSizeIdx] = useTabState('image', 'sizeIdx', '2')
+  const [aspectRatio, setAspectRatio] = useTabState('image', 'aspectRatio', '')
+  const [resolution, setResolution] = useTabState('image', 'resolution', '')
+  const [style, setStyle] = useTabState('image', 'style', '')
+  const [steps, setSteps] = useTabState('image', 'steps', defaultSteps)
+  const [variants, setVariants] = useTabState('image', 'variants', 1)
+  const [safeMode, setSafeMode] = useTabState('image', 'safeMode', true)
   const [images, setImages] = useState<string[]>([])
-  const [advancedParams, setAdvancedParams] = useState<Record<string, unknown>>({})
+  const [advancedParams, setAdvancedParams] = useTabState<Record<string, unknown>>('image', 'advancedParams', {})
   const { capture } = useRequestInspector()
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 

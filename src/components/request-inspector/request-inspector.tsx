@@ -11,8 +11,8 @@ export function RequestInspector() {
 
   const handleCopyCurl = useCallback(() => {
     if (!lastRequest) return
-    const escaped = body.replace(/'/g, "'\\''")
-    const curl = `curl -X ${lastRequest.method} https://api.venice.ai/api/v1${lastRequest.path} \\\n  -H "Authorization: Bearer $VENICE_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '${escaped}'`
+    const stub = '/tmp/venice-payload.json'
+    const curl = `cat > ${stub} <<'JSONEOF'\n${body}\nJSONEOF\ncurl -X ${lastRequest.method} https://api.venice.ai/api/v1${lastRequest.path} \\\n  -H "Authorization: Bearer $VENICE_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d @${stub}`
     navigator.clipboard.writeText(curl)
   }, [lastRequest, body])
 
@@ -31,6 +31,8 @@ export function RequestInspector() {
       setSending(false)
     }
   }, [lastRequest, editedBody, body])
+
+  const isStreamingEndpoint = lastRequest?.path === '/chat/completions'
 
   if (!open) return null
 
@@ -72,7 +74,8 @@ export function RequestInspector() {
               </button>
               <button
                 onClick={handleApplyAndRetry}
-                disabled={sending}
+                disabled={sending || isStreamingEndpoint}
+                title={isStreamingEndpoint ? 'Not available for streaming endpoints' : 'Resend the edited payload'}
                 className="text-[12px] text-white/30 hover:text-white/60 transition-colors px-2 py-1 rounded border border-white/[0.06] hover:border-white/[0.12] disabled:opacity-30"
               >
                 {sending ? 'Sending...' : 'Apply & Retry'}

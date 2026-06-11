@@ -96,7 +96,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
             options={modelOptions}
             searchable
             placeholder="Select model…"
-            className="w-44 sm:w-64"
+            className="w-52 sm:w-80"
           />
         </>
       )}

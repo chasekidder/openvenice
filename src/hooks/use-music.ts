@@ -14,6 +14,7 @@ export function useMusic() {
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined)
   const tickRef = useRef<ReturnType<typeof setInterval>>(undefined)
   const requestIdRef = useRef<string | null>(null)
+  const modelRef = useRef<string | null>(null)
   const startedAtRef = useRef<number | null>(null)
   const attemptsRef = useRef(0)
   const cancelledRef = useRef(false)
@@ -46,7 +47,7 @@ export function useMusic() {
       try {
         const result = await venice<MusicRetrieveResponse>('/audio/retrieve', {
           method: 'POST',
-          body: JSON.stringify({ id: requestIdRef.current }),
+          body: JSON.stringify({ model: modelRef.current, queue_id: requestIdRef.current }),
         })
         const s = result.status.toLowerCase() as 'queued' | 'processing' | 'completed' | 'failed'
         setStatus(s)
@@ -72,9 +73,10 @@ export function useMusic() {
         method: 'POST',
         body: JSON.stringify(req),
       }),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       cancelledRef.current = false
       requestIdRef.current = data.queue_id
+      modelRef.current = variables.model
       setStatus('queued')
       setAudioUrl(null)
       setError(null)
@@ -92,6 +94,7 @@ export function useMusic() {
     setStatus('idle')
     setError(null)
     requestIdRef.current = null
+    modelRef.current = null
     startedAtRef.current = null
     setElapsedMs(0)
   }, [stopPolling])

@@ -14,6 +14,9 @@ interface SettingsState {
   setSelectedModel: (tab: string, modelId: string) => void
   playgroundAgentModel: string
   setPlaygroundAgentModel: (modelId: string) => void
+  tabFormState: Record<string, Record<string, unknown>>
+  setTabFormField: (tab: string, key: string, value: unknown) => void
+  clearTabFormState: (tab: string) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -29,6 +32,20 @@ export const useSettingsStore = create<SettingsState>()(
         set((s) => ({ selectedModels: { ...s.selectedModels, [tab]: modelId } })),
       playgroundAgentModel: '',
       setPlaygroundAgentModel: (modelId) => set({ playgroundAgentModel: modelId }),
+      tabFormState: {},
+      setTabFormField: (tab, key, value) =>
+        set((s) => ({
+          tabFormState: {
+            ...s.tabFormState,
+            [tab]: { ...(s.tabFormState[tab] || {}), [key]: value },
+          },
+        })),
+      clearTabFormState: (tab) =>
+        set((s) => {
+          const next = { ...s.tabFormState }
+          delete next[tab]
+          return { tabFormState: next }
+        }),
     }),
     {
       name: 'venice-settings',

@@ -14,6 +14,7 @@ export function useVideo() {
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined)
   const tickRef = useRef<ReturnType<typeof setInterval>>(undefined)
   const requestIdRef = useRef<string | null>(null)
+  const modelRef = useRef<string | null>(null)
   const startedAtRef = useRef<number | null>(null)
   const attemptsRef = useRef(0)
   const cancelledRef = useRef(false)
@@ -46,7 +47,7 @@ export function useVideo() {
       try {
         const result = await venice<VideoRetrieveResponse>('/video/retrieve', {
           method: 'POST',
-          body: JSON.stringify({ id: requestIdRef.current }),
+          body: JSON.stringify({ model: modelRef.current, queue_id: requestIdRef.current }),
         })
         setStatus(result.status)
         if (result.status === 'completed' && result.video_url) {
@@ -72,9 +73,10 @@ export function useVideo() {
         method: 'POST',
         body: JSON.stringify(req),
       }),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       cancelledRef.current = false
       requestIdRef.current = data.queue_id || data.id || ''
+      modelRef.current = variables.model
       setStatus('queued')
       setVideoUrl(null)
       setError(null)
@@ -92,6 +94,7 @@ export function useVideo() {
     setStatus('idle')
     setError(null)
     requestIdRef.current = null
+    modelRef.current = null
     startedAtRef.current = null
     setElapsedMs(0)
   }, [stopPolling])

@@ -1,9 +1,9 @@
-import { useState } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useAuthStore } from '../../stores/auth-store'
 import { useMusic } from '../../hooks/use-music'
 import { useRequestInspector } from '../../hooks/use-request-inspector'
+import { useTabState } from '../../hooks/use-tab-state'
 import { Label, TextArea, PrimaryButton, ErrorText } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
 import { AdvancedControls } from '../advanced-controls/advanced-controls'
@@ -39,11 +39,11 @@ export function MusicView() {
   const model = selectedModel || models?.[0]?.id || ''
   const config = getConfig(model)
 
-  const [prompt, setPrompt] = useState('')
-  const [lyrics, setLyrics] = useState('')
-  const [duration, setDuration] = useState(30)
-  const [instrumental, setInstrumental] = useState(false)
-  const [advancedParams, setAdvancedParams] = useState<Record<string, unknown>>({})
+  const [prompt, setPrompt] = useTabState('music', 'prompt', '')
+  const [lyrics, setLyrics] = useTabState('music', 'lyrics', '')
+  const [duration, setDuration] = useTabState('music', 'duration', 30)
+  const [instrumental, setInstrumental] = useTabState('music', 'instrumental', false)
+  const [advancedParams, setAdvancedParams] = useTabState<Record<string, unknown>>('music', 'advancedParams', {})
 
   const { queue, isQueueing, status, audioUrl, error, reset, cancel, elapsedMs } = useMusic()
   const { capture } = useRequestInspector()

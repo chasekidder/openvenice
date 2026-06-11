@@ -1,8 +1,9 @@
-import { useState, useRef, useMemo } from 'react'
+import { useRef, useMemo } from 'react'
 import { useAuthStore } from '../../stores/auth-store'
 import { useVideoModels, type VideoModelGroup } from '../../hooks/use-models'
 import { useVideo } from '../../hooks/use-video'
 import { useRequestInspector } from '../../hooks/use-request-inspector'
+import { useTabState } from '../../hooks/use-tab-state'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
@@ -13,22 +14,22 @@ import type { VideoQueueRequest, VideoConstraints } from '../../types/venice'
 export function VideoView() {
   const apiKey = useAuthStore((s) => s.apiKey)
   const { groups, isLoading: modelsLoading } = useVideoModels()
-  const [selectedGroup, setSelectedGroup] = useState<string>('')
-  const [mode, setMode] = useState<'text' | 'image'>('text')
+  const [selectedGroup, setSelectedGroup] = useTabState('video', 'selectedGroup', '')
+  const [mode, setMode] = useTabState<'text' | 'image'>('video', 'mode', 'text')
 
-  const [prompt, setPrompt] = useState('')
-  const [negativePrompt, setNegativePrompt] = useState('')
-  const [duration, setDuration] = useState('')
-  const [resolution, setResolution] = useState('')
-  const [aspect, setAspect] = useState('')
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const [imageName, setImageName] = useState('')
-  const [audioEnabled, setAudioEnabled] = useState(true)
+  const [prompt, setPrompt] = useTabState('video', 'prompt', '')
+  const [negativePrompt, setNegativePrompt] = useTabState('video', 'negativePrompt', '')
+  const [duration, setDuration] = useTabState('video', 'duration', '')
+  const [resolution, setResolution] = useTabState('video', 'resolution', '')
+  const [aspect, setAspect] = useTabState('video', 'aspect', '')
+  const [imageUrl, setImageUrl] = useTabState<string | null>('video', 'imageUrl', null)
+  const [imageName, setImageName] = useTabState('video', 'imageName', '')
+  const [audioEnabled, setAudioEnabled] = useTabState('video', 'audioEnabled', true)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const { queue, isQueueing, status, videoUrl, error, reset, cancel, elapsedMs } = useVideo()
   const isProcessing = status === 'queued' || status === 'processing'
-  const [advancedParams, setAdvancedParams] = useState<Record<string, unknown>>({})
+  const [advancedParams, setAdvancedParams] = useTabState<Record<string, unknown>>('video', 'advancedParams', {})
   const { capture } = useRequestInspector()
 
   // Resolve current group and constraints
@@ -67,10 +68,16 @@ export function VideoView() {
   const effectiveAspect = aspectOpts.some((o) => o.value === aspect) ? aspect : aspectOpts[0]?.value || ''
 
   const groupOptions = useMemo(() =>
-    groups.map((g) => ({
-      value: g.name,
-      label: g.name,
-    })),
+    groups.map((g) => {
+      const model = g.textModel || g.imageModel
+      const pricing = model?.model_spec?.pricing
+      let label = g.name
+      if (pricing?.input?.usd && pricing.input.usd > 0) {
+        const out = pricing.output?.usd && pricing.output.usd > 0 ? `/${pricing.output.usd.toFixed(2)}` : ''
+        label += ` ($${pricing.input.usd.toFixed(2)}${out}/M)`
+      }
+      return { value: g.name, label }
+    }),
     [groups],
   )
 

@@ -64,19 +64,24 @@ export function useOpenapiSpec() {
   return useQuery({
     queryKey: ['openapi-spec'],
     queryFn: async () => {
-      const res = await fetch('https://api.venice.ai/doc/api/swagger.yaml')
+      const base = import.meta.env.DEV ? '/venice' : 'https://api.venice.ai'
+      const res = await fetch(`${base}/doc/api/swagger.yaml`)
       const text = await res.text()
       return yaml.load(text) as Record<string, unknown>
     },
     staleTime: 24 * 60 * 60 * 1000,
     gcTime: 7 * 24 * 60 * 60 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 }
 
 export function useEndpointSchema(apiPath: string, primaryFields: string[]) {
-  const { data: spec } = useOpenapiSpec()
+  const { data: spec, isError, error } = useOpenapiSpec()
 
   return useMemo(() => {
+    if (isError) return { entries: [] as OpenAPISchemaEntry[], isLoading: false, error: error as Error }
     if (!spec) return { entries: [] as OpenAPISchemaEntry[], isLoading: true }
 
     const schema = findRequestBodySchema(spec, apiPath)
@@ -104,5 +109,5 @@ export function useEndpointSchema(apiPath: string, primaryFields: string[]) {
     })
 
     return { entries, isLoading: false }
-  }, [spec, apiPath, primaryFields])
+  }, [spec, apiPath, primaryFields, isError, error])
 }

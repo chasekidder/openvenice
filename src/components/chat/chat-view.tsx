@@ -87,7 +87,7 @@ export function ChatView() {
                   index={i}
                   onCopy={() => {}}
                   onDelete={() => { if (conversation) deleteMessage(conversation.id, i) }}
-                  onRegenerate={msg.role === 'assistant' && i === conversation.messages.length - 1 ? () => regenerate(model) : undefined}
+                    onRegenerate={msg.role === 'assistant' && i === conversation.messages.length - 1 ? () => regenerate(model, advancedParams) : undefined}
                 />
               ))}
               <div ref={messagesEndRef} />
