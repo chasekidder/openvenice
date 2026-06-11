@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useAuthStore } from '../../stores/auth-store'
@@ -70,6 +70,7 @@ export function AudioView() {
   const tts = useTTS()
   const transcription = useTranscription()
   const [advancedParams, setAdvancedParams] = useTabState<Record<string, unknown>>('audio', 'advancedParams', {})
+  useEffect(() => { setAdvancedParams({}) }, [model])
   const { capture } = useRequestInspector()
 
   const voiceOptions = VOICES.map((v) => {

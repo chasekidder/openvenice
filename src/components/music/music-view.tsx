@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useAuthStore } from '../../stores/auth-store'
@@ -51,6 +51,8 @@ export function MusicView() {
   )
 
   const [advancedParams, setAdvancedParams] = useTabState<Record<string, unknown>>('music', 'advancedParams', {})
+
+  useEffect(() => { setAdvancedParams({}) }, [model])
 
   const { queue, isQueueing, status, audioUrl, error, reset, cancel, elapsedMs } = useMusic()
   const { capture } = useRequestInspector()

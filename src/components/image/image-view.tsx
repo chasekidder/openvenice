@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useStyles } from '../../hooks/use-styles'
@@ -70,6 +70,7 @@ export function ImageView() {
   )
 
   const [advancedParams, setAdvancedParams] = useTabState<Record<string, unknown>>('image', 'advancedParams', {})
+  useEffect(() => { setAdvancedParams({}) }, [model])
   const { capture } = useRequestInspector()
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
