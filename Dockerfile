@@ -21,7 +21,6 @@ RUN printf '%s\n' \
   '  root /usr/share/nginx/html;' \
   '  index index.html;' \
   '  gzip on; gzip_types text/plain application/javascript text/css application/json image/svg+xml;' \
-  '  location /venice/ { proxy_pass https://api.venice.ai/; proxy_set_header Host api.venice.ai; }' \
   '  location / { try_files $uri $uri/ /index.html; }' \
   '  location ~* \.(?:js|css|svg|woff2?)$ { expires 1y; add_header Cache-Control "public, immutable"; }' \
   '}' > /etc/nginx/conf.d/default.conf

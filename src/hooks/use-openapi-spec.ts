@@ -65,7 +65,8 @@ export function useOpenapiSpec() {
     queryKey: ['openapi-spec'],
     queryFn: async () => {
       try {
-        const res = await fetch('/venice/doc/api/swagger.yaml', { signal: AbortSignal.timeout(10000) })
+        const base = import.meta.env.DEV ? '/venice' : 'https://api.venice.ai'
+        const res = await fetch(`${base}/doc/api/swagger.yaml`, { signal: AbortSignal.timeout(10000) })
         if (!res.ok) return null
         const text = await res.text()
         return yaml.load(text) as Record<string, unknown>
