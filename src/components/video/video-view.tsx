@@ -31,7 +31,6 @@ export function VideoView() {
   const isProcessing = status === 'queued' || status === 'processing'
   const [advancedParams, setAdvancedParams] = useTabState<Record<string, unknown>>('video', 'advancedParams', {})
   const { capture } = useRequestInspector()
-  useEffect(() => { setAdvancedParams({}) }, [activeModel?.id])
 
   // Resolve current group and constraints
   const group: VideoModelGroup | undefined = useMemo(() => {
@@ -41,6 +40,7 @@ export function VideoView() {
 
   const activeModel = mode === 'image' ? group?.imageModel : group?.textModel
   const constraints = activeModel?.model_spec?.constraints as VideoConstraints | undefined
+  useEffect(() => { setAdvancedParams({}) }, [activeModel?.id])
 
   // Auto-select first group when models load
   const currentGroupName = group?.name || ''
