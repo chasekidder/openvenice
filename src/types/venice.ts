@@ -219,6 +219,7 @@ export interface MusicQueueRequest {
   lyrics_prompt?: string
   duration_seconds?: number
   force_instrumental?: boolean
+  lyrics_optimizer?: boolean
   voice?: string
   language_code?: string
   speed?: number
@@ -295,13 +296,11 @@ export interface CharactersResponse {
 }
 
 // Error types
+export type VeniceErrorBody = { message: string; type: string; code?: string; suggested_prompt?: string }
+
 export interface VeniceError {
-  error: {
-    message: string
-    type: string
-    code?: string
-    suggested_prompt?: string
-  }
+  error: string | VeniceErrorBody
+  details?: Record<string, unknown>
 }
 
 // Conversation

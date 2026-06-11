@@ -44,10 +44,15 @@ async function parseError(res: Response): Promise<VeniceAPIError> {
   let code: string | undefined
   let suggestedPrompt: string | undefined
   try {
-    const err = (await res.json()) as VeniceError
-    message = err.error?.message ?? message
-    code = err.error?.code
-    suggestedPrompt = err.error?.suggested_prompt
+    const body = (await res.json()) as VeniceError
+    const err = body.error
+    if (typeof err === 'string') {
+      message = err
+    } else if (err && typeof err === 'object') {
+      message = err.message ?? message
+      code = err.code
+      suggestedPrompt = err.suggested_prompt
+    }
   } catch {
     /* keep default */
   }

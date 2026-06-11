@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { venice } from '../lib/venice-client'
+import { venice, veniceBlob } from '../lib/venice-client'
 import type { VideoQueueRequest, VideoQueueResponse, VideoRetrieveResponse } from '../types/venice'
 
 const POLL_INTERVAL_MS = 3000
@@ -45,20 +45,32 @@ export function useVideo() {
         return
       }
       try {
-        const result = await venice<VideoRetrieveResponse>('/video/retrieve', {
-          method: 'POST',
-          body: JSON.stringify({ model: modelRef.current, queue_id: requestIdRef.current }),
+        const blob = await veniceBlob('/video/retrieve', {
+          model: modelRef.current,
+          queue_id: requestIdRef.current,
         })
-        setStatus(result.status)
-        if (result.status === 'completed' && result.video_url) {
-          setVideoUrl(result.video_url)
-          stopPolling()
-        } else if (result.status === 'failed') {
-          setError(result.error ?? 'Video generation failed')
+        const blobText = await blob.slice(0, 100).text()
+        const isJson = blobText.trim().startsWith('{')
+        if (isJson) {
+          const full = await blob.text()
+          const result = JSON.parse(full) as VideoRetrieveResponse
+          const s = result.status?.toLowerCase() as 'queued' | 'processing' | 'completed' | 'failed'
+          setStatus(s)
+          if (s === 'completed') {
+            if (result.video_url) {
+              setVideoUrl(result.video_url)
+              stopPolling()
+            }
+          } else if (s === 'failed') {
+            setError(result.error ?? 'Video generation failed')
+            stopPolling()
+          }
+        } else {
+          setStatus('completed')
+          setVideoUrl(URL.createObjectURL(blob))
           stopPolling()
         }
       } catch (err) {
-        // Transient failure — keep polling unless we've burned through too many attempts.
         if (attemptsRef.current >= MAX_ATTEMPTS) {
           setError(err instanceof Error ? err.message : 'Polling failed')
           stopPolling()
