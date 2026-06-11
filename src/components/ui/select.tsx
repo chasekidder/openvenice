@@ -52,7 +52,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
       </button>
 
       {open && (
-        <div className="absolute z-50 w-full mt-0.5 bg-[#0e0e0e] border border-white/[0.08] rounded-lg shadow-2xl shadow-black/50 animate-scale-in overflow-hidden">
+        <div className="absolute z-50 right-0 min-w-full mt-0.5 bg-[#0e0e0e] border border-white/[0.08] rounded-lg shadow-2xl shadow-black/50 animate-scale-in overflow-hidden">
           {searchable && (
             <div className="p-1 border-b border-white/[0.04]">
               <input
@@ -73,7 +73,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
                   key={o.value}
                   onClick={() => { onChange(o.value); setOpen(false) }}
                   className={cn(
-                    'w-full text-left px-3 py-[6px] text-[15px] rounded transition-colors',
+                    'w-full text-left whitespace-nowrap px-3 py-[6px] text-[15px] rounded transition-colors',
                     o.value === value
                       ? 'bg-white/[0.07] text-white/80'
                       : 'text-white/40 hover:bg-white/[0.04] hover:text-white/70',

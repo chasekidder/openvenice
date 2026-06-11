@@ -64,10 +64,14 @@ export function useOpenapiSpec() {
   return useQuery({
     queryKey: ['openapi-spec'],
     queryFn: async () => {
-      const base = import.meta.env.DEV ? '/venice' : 'https://api.venice.ai'
-      const res = await fetch(`${base}/doc/api/swagger.yaml`)
-      const text = await res.text()
-      return yaml.load(text) as Record<string, unknown>
+      try {
+        const res = await fetch('/venice/doc/api/swagger.yaml', { signal: AbortSignal.timeout(10000) })
+        if (!res.ok) return null
+        const text = await res.text()
+        return yaml.load(text) as Record<string, unknown>
+      } catch {
+        return null
+      }
     },
     staleTime: 24 * 60 * 60 * 1000,
     gcTime: 7 * 24 * 60 * 60 * 1000,

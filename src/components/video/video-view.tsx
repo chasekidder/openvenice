@@ -72,9 +72,11 @@ export function VideoView() {
       const model = g.textModel || g.imageModel
       const pricing = model?.model_spec?.pricing
       let label = g.name
-      if (pricing?.input?.usd && pricing.input.usd > 0) {
-        const out = pricing.output?.usd && pricing.output.usd > 0 ? `/${pricing.output.usd.toFixed(2)}` : ''
-        label += ` ($${pricing.input.usd.toFixed(2)}${out}/M)`
+      const inputUsd = pricing?.input?.usd !== undefined ? Number(pricing.input.usd) : 0
+      if (inputUsd > 0) {
+        const outputUsd = pricing?.output?.usd !== undefined ? Number(pricing.output.usd) : 0
+        const out = outputUsd > 0 ? `/${outputUsd.toFixed(2)}` : ''
+        label += ` ($${inputUsd.toFixed(2)}${out}/M)`
       }
       return { value: g.name, label }
     }),

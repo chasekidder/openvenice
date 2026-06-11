@@ -64,6 +64,17 @@ export function ImageView() {
   const [variants, setVariants] = useTabState('image', 'variants', 1)
   const [safeMode, setSafeMode] = useTabState('image', 'safeMode', true)
   const [images, setImages] = useState<string[]>([])
+  const modelPricing = modelData?.model_spec?.pricing
+  const modelPriceLabel = useMemo(() => {
+    if (!modelPricing?.input || modelPricing.input.usd === undefined) return ''
+    const usd = Number(modelPricing.input.usd)
+    if (usd <= 0) return ''
+    const out = modelPricing.output?.usd && Number(modelPricing.output.usd) > 0
+      ? ` / $${Number(modelPricing.output.usd).toFixed(2)}`
+      : ''
+    return `$${usd.toFixed(2)}${out}/M`
+  }, [modelPricing])
+
   const [advancedParams, setAdvancedParams] = useTabState<Record<string, unknown>>('image', 'advancedParams', {})
   const { capture } = useRequestInspector()
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
@@ -137,6 +148,13 @@ export function ImageView() {
 
   const controls = (
     <>
+      <div className="flex items-center gap-2 text-[13px] text-white/40">
+        <span className="truncate">{model}</span>
+        {modelPriceLabel && (
+          <span className="shrink-0 font-mono text-white/25">{modelPriceLabel}</span>
+        )}
+      </div>
+
       <div>
         <Label hint={`${prompt.length}/${promptLimit}`}>Prompt</Label>
         <TextArea value={prompt} onChange={setPrompt} placeholder="A serene mountain landscape at golden hour…" />

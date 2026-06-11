@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useAuthStore } from '../../stores/auth-store'
@@ -43,6 +44,18 @@ export function MusicView() {
   const [lyrics, setLyrics] = useTabState('music', 'lyrics', '')
   const [duration, setDuration] = useTabState('music', 'duration', 30)
   const [instrumental, setInstrumental] = useTabState('music', 'instrumental', false)
+  const modelData = models?.find((m) => m.id === model)
+  const modelPricing = modelData?.model_spec?.pricing
+  const modelPriceLabel = useMemo(() => {
+    if (!modelPricing?.input || modelPricing.input.usd === undefined) return ''
+    const usd = Number(modelPricing.input.usd)
+    if (usd <= 0) return ''
+    const out = modelPricing.output?.usd && Number(modelPricing.output.usd) > 0
+      ? ` / $${Number(modelPricing.output.usd).toFixed(2)}`
+      : ''
+    return `$${usd.toFixed(2)}${out}/M`
+  }, [modelPricing])
+
   const [advancedParams, setAdvancedParams] = useTabState<Record<string, unknown>>('music', 'advancedParams', {})
 
   const { queue, isQueueing, status, audioUrl, error, reset, cancel, elapsedMs } = useMusic()
@@ -65,6 +78,13 @@ export function MusicView() {
 
   const controls = (
     <>
+      <div className="flex items-center gap-2 text-[13px] text-white/40">
+        <span className="truncate">{model}</span>
+        {modelPriceLabel && (
+          <span className="shrink-0 font-mono text-white/25">{modelPriceLabel}</span>
+        )}
+      </div>
+
       <div>
         <Label>Prompt</Label>
         <TextArea value={prompt} onChange={setPrompt} placeholder="An upbeat electronic track with a driving bassline and ethereal synths…" rows={4} />
