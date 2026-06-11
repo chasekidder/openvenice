@@ -103,7 +103,7 @@ export function ImageView() {
       model,
       style_preset: style || undefined,
       variants,
-      hide_watermark: hideWatermark,
+      hide_watermark: true,
       safe_mode: safeMode,
       steps,
     }
