@@ -20,9 +20,19 @@ interface PricingLike {
   input?: { usd?: number }
   output?: { usd?: number }
   generation?: { usd?: number }
+  resolutions?: Record<string, { usd?: number }>
+  quality?: Record<string, Record<string, { usd?: number }>>
+  upscale?: Record<string, { usd?: number }>
+  inpaint?: { usd?: number }
+  durations?: Record<string, { usd?: number; min_seconds?: number; max_seconds?: number }>
   per_second?: { usd?: number }
   per_thousand_characters?: { usd?: number }
   per_audio_second?: { usd?: number }
+}
+
+function pick(obj: Record<string, { usd?: number }>): number | undefined {
+  const keys = Object.keys(obj).sort()
+  return obj[keys[0]]?.usd
 }
 
 export function formatPricingLabel(pricing?: PricingLike | null): string {
@@ -38,6 +48,25 @@ export function formatPricingLabel(pricing?: PricingLike | null): string {
   if (pricing.generation?.usd && pricing.generation.usd > 0) {
     const usd = Number(pricing.generation.usd)
     return usd < 0.01 ? `$${usd.toFixed(4)}/gen` : `$${usd.toFixed(2)}/gen`
+  }
+
+  if (pricing.resolutions) {
+    const usd = pick(pricing.resolutions)
+    if (usd && usd > 0) return usd < 0.01 ? `$${usd.toFixed(4)}/gen` : `$${usd.toFixed(2)}/gen`
+  }
+
+  if (pricing.quality) {
+    const tiers = Object.keys(pricing.quality).sort()
+    const qualities = pricing.quality[tiers[0]]
+    if (qualities) {
+      const levels = Object.keys(qualities).sort()
+      const usd = qualities[levels[0]]?.usd
+      if (usd && usd > 0) return usd < 0.01 ? `$${usd.toFixed(4)}/gen` : `$${usd.toFixed(2)}/gen`
+    }
+  }
+
+  if (pricing.inpaint?.usd && pricing.inpaint.usd > 0) {
+    return `$${Number(pricing.inpaint.usd).toFixed(4)}/edit`
   }
 
   if (pricing.per_second?.usd && pricing.per_second.usd > 0) {
