@@ -8,7 +8,7 @@ import { useTabState } from '../../hooks/use-tab-state'
 import { Label, TextArea, PrimaryButton, ErrorText } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
 import { AdvancedControls } from '../advanced-controls/advanced-controls'
-import { cn } from '../../lib/utils'
+import { cn, formatPricingLabel } from '../../lib/utils'
 import type { MusicQueueRequest } from '../../types/venice'
 
 // Model capabilities
@@ -45,16 +45,10 @@ export function MusicView() {
   const [duration, setDuration] = useTabState('music', 'duration', 30)
   const [instrumental, setInstrumental] = useTabState('music', 'instrumental', false)
   const modelData = models?.find((m) => m.id === model)
-  const modelPricing = modelData?.model_spec?.pricing
-  const modelPriceLabel = useMemo(() => {
-    if (!modelPricing?.input || modelPricing.input.usd === undefined) return ''
-    const usd = Number(modelPricing.input.usd)
-    if (usd <= 0) return ''
-    const out = modelPricing.output?.usd && Number(modelPricing.output.usd) > 0
-      ? ` / $${Number(modelPricing.output.usd).toFixed(2)}`
-      : ''
-    return `$${usd.toFixed(2)}${out}/M`
-  }, [modelPricing])
+  const modelPriceLabel = useMemo(
+    () => formatPricingLabel(modelData?.model_spec?.pricing),
+    [modelData?.model_spec?.pricing],
+  )
 
   const [advancedParams, setAdvancedParams] = useTabState<Record<string, unknown>>('music', 'advancedParams', {})
 

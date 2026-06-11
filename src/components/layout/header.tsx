@@ -4,6 +4,7 @@ import { useAuthStore } from '../../stores/auth-store'
 import { useRequestInspectorStore } from '../../stores/request-inspector-store'
 import { Select } from '../ui/select'
 import { StatusDot } from '../ui/shared'
+import { formatPricingLabel } from '../../lib/utils'
 
 const modelTypeMap: Record<string, string> = {
   chat: 'text',
@@ -51,14 +52,8 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const { data: models } = useModels(hasOwnSelector ? undefined : modelType)
   const currentModel = hasOwnSelector ? '' : (selectedModels[activeTab] || models?.[0]?.id || '')
   const modelOptions = hasOwnSelector ? [] : (models?.map((m) => {
-    const pricing = m.model_spec?.pricing
-    let label = m.model_spec?.name || m.id
-    const inputUsd = pricing?.input?.usd !== undefined ? Number(pricing.input.usd) : 0
-    if (inputUsd > 0) {
-      const outputUsd = pricing?.output?.usd !== undefined ? Number(pricing.output.usd) : 0
-      const out = outputUsd > 0 ? `/${outputUsd.toFixed(2)}` : ''
-      label += ` ($${inputUsd.toFixed(2)}${out}/M)`
-    }
+    const priceLabel = formatPricingLabel(m.model_spec?.pricing)
+    const label = priceLabel ? `${m.model_spec?.name || m.id} (${priceLabel})` : (m.model_spec?.name || m.id)
     return { value: m.id, label }
   }) ?? [])
 

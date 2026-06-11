@@ -1,5 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import yaml from 'js-yaml'
 
 export interface OpenAPISchemaEntry {
@@ -61,25 +60,26 @@ function findRequestBodySchema(spec: Record<string, unknown>, apiPath: string): 
 }
 
 export function useOpenapiSpec() {
-  return useQuery({
-    queryKey: ['openapi-spec'],
-    queryFn: async () => {
+  const [spec, setSpec] = useState<Record<string, unknown> | null>(null)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
       try {
-        const base = import.meta.env.DEV ? '/venice' : 'https://api.venice.ai'
-        const res = await fetch(`${base}/doc/api/swagger.yaml`, { signal: AbortSignal.timeout(10000) })
-        if (!res.ok) return null
-        const text = await res.text()
-        return yaml.load(text) as Record<string, unknown>
-      } catch {
-        return null
+        const { default: text } = await import('../../swagger.yaml?raw')
+        if (cancelled) return
+        setSpec(yaml.load(text) as Record<string, unknown>)
+      } catch (e) {
+        if (cancelled) return
+        setError(e instanceof Error ? e : new Error(String(e)))
       }
-    },
-    staleTime: 24 * 60 * 60 * 1000,
-    gcTime: 7 * 24 * 60 * 60 * 1000,
-    retry: 1,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  })
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  return { data: spec, isError: error !== null, error }
 }
 
 export function useEndpointSchema(apiPath: string, primaryFields: string[]) {

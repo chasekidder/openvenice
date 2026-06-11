@@ -8,7 +8,7 @@ import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
 import { AdvancedControls } from '../advanced-controls/advanced-controls'
-import { cn } from '../../lib/utils'
+import { cn, formatPricingLabel } from '../../lib/utils'
 import type { VideoQueueRequest, VideoConstraints } from '../../types/venice'
 
 export function VideoView() {
@@ -70,14 +70,8 @@ export function VideoView() {
   const groupOptions = useMemo(() =>
     groups.map((g) => {
       const model = g.textModel || g.imageModel
-      const pricing = model?.model_spec?.pricing
-      let label = g.name
-      const inputUsd = pricing?.input?.usd !== undefined ? Number(pricing.input.usd) : 0
-      if (inputUsd > 0) {
-        const outputUsd = pricing?.output?.usd !== undefined ? Number(pricing.output.usd) : 0
-        const out = outputUsd > 0 ? `/${outputUsd.toFixed(2)}` : ''
-        label += ` ($${inputUsd.toFixed(2)}${out}/M)`
-      }
+      const priceLabel = formatPricingLabel(model?.model_spec?.pricing)
+      const label = priceLabel ? `${g.name} (${priceLabel})` : g.name
       return { value: g.name, label }
     }),
     [groups],

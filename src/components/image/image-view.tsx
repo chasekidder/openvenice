@@ -10,7 +10,7 @@ import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText, ExamplePrompts } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
 import { AdvancedControls } from '../advanced-controls/advanced-controls'
-import { cn } from '../../lib/utils'
+import { cn, formatPricingLabel } from '../../lib/utils'
 import type { ImageConstraints } from '../../types/venice'
 
 const IMAGE_EXAMPLES = [
@@ -64,16 +64,10 @@ export function ImageView() {
   const [variants, setVariants] = useTabState('image', 'variants', 1)
   const [safeMode, setSafeMode] = useTabState('image', 'safeMode', true)
   const [images, setImages] = useState<string[]>([])
-  const modelPricing = modelData?.model_spec?.pricing
-  const modelPriceLabel = useMemo(() => {
-    if (!modelPricing?.input || modelPricing.input.usd === undefined) return ''
-    const usd = Number(modelPricing.input.usd)
-    if (usd <= 0) return ''
-    const out = modelPricing.output?.usd && Number(modelPricing.output.usd) > 0
-      ? ` / $${Number(modelPricing.output.usd).toFixed(2)}`
-      : ''
-    return `$${usd.toFixed(2)}${out}/M`
-  }, [modelPricing])
+  const modelPriceLabel = useMemo(
+    () => formatPricingLabel(modelData?.model_spec?.pricing),
+    [modelData?.model_spec?.pricing],
+  )
 
   const [advancedParams, setAdvancedParams] = useTabState<Record<string, unknown>>('image', 'advancedParams', {})
   const { capture } = useRequestInspector()

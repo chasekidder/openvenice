@@ -48,6 +48,29 @@ export type ModelTrait =
   | 'default_code'
   | 'default_vision'
 
+export interface ModelPricing {
+  input?: { usd?: number }
+  output?: { usd?: number }
+  cache_input?: { usd?: number }
+  cache_write?: { usd?: number }
+  extended?: {
+    context_token_threshold?: number
+    input?: { usd?: number }
+    output?: { usd?: number }
+    cache_input?: { usd?: number }
+    cache_write?: { usd?: number }
+  }
+  generation?: { usd?: number }
+  resolutions?: Record<string, { usd?: number }>
+  quality?: Record<string, Record<string, { usd?: number }>>
+  upscale?: Record<string, { usd?: number }>
+  inpaint?: { usd?: number }
+  durations?: Record<string, { usd?: number; min_seconds?: number; max_seconds?: number }>
+  per_second?: { usd?: number }
+  per_thousand_characters?: { usd?: number }
+  per_audio_second?: { usd?: number }
+}
+
 export interface VeniceModel {
   id: string
   object: string
@@ -63,10 +86,7 @@ export interface VeniceModel {
     description?: string
     constraints?: VideoConstraints | ImageConstraints
     model_sets?: string[]
-    pricing?: {
-      input?: { usd?: number }
-      output?: { usd?: number }
-    }
+    pricing?: ModelPricing
   }
 }
 
